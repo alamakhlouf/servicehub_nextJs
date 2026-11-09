@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #2563eb;
+  --color-primary-hover: #3b82f6;
+  --color-primary-strong: #1d4ed8;
+  --color-secondary: #10b981;
+  --color-secondary-hover: #34d399;
+  --color-tertiary: #f59e0b;
+  --color-background: #0b1220;
+  --color-surface: #111a2e;
+  --color-surface-elevated: #182238;
+  --color-surface-interactive: #202c46;
+  --color-text: #f8fafc;
+  --color-text-muted: #a7b3c9;
+  --color-text-subtle: #71809a;
+  --color-border: #2b3852;
+  --color-border-strong: #43516c;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-overlay: rgb(3 8 20 / 72%);
+  --shadow-sm: 0 2px 8px rgb(3 8 20 / 18%);
+  --shadow-md: 0 12px 30px rgb(3 8 20 / 24%);
+  --shadow-lg: 0 24px 60px rgb(3 8 20 / 34%);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-pill: 9999px;
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-strong: var(--color-primary-strong);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-hover: var(--color-secondary-hover);
+  --color-tertiary: var(--color-tertiary);
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-elevated: var(--color-surface-elevated);
+  --color-surface-interactive: var(--color-surface-interactive);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-subtle: var(--color-text-subtle);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-jakarta);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  min-width: 320px;
+  background: var(--color-background);
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-jakarta), sans-serif;
+  letter-spacing: -0.025em;
+}
+
+::selection {
+  background: rgb(37 99 235 / 42%);
+  color: var(--color-text);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  outline-offset: 3px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary-hover);
+  outline-offset: 3px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-subtle);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
