@@ -6,9 +6,9 @@ import { participantsCollection, toSafeParticipant } from "@/lib/workshops/parti
 import { workshopsCollection, toSafeWorkshop } from "@/lib/workshops/workshops";
 
 export async function GET() {
-  const user = await apiUser(["PROVIDER"]);
+  const user = await apiUser(["CUSTOMER"], "Only customers can view their workshop enrollments.");
   if (isApiError(user)) return user;
-  const records = await (await participantsCollection()).find({ providerId: new ObjectId(user.id) }).sort({ createdAt: -1 }).toArray();
+  const records = await (await participantsCollection()).find({ customerId: new ObjectId(user.id) }).sort({ createdAt: -1 }).toArray();
   const workshops = await Promise.all(records.map(async (participant) => {
     const workshop = await (await workshopsCollection()).findOne({ _id: participant.workshopId });
     if (!workshop) return null;

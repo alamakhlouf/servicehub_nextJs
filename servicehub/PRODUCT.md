@@ -12,8 +12,8 @@ Existing Next.js App Router application using TypeScript and Tailwind CSS, with 
 
 ## Users
 
-- **Customers** discover local services and supplier products, request bookings, place supplier orders, attend workshops, review completed services, submit reports, and manage their profiles.
-- **Providers** publish and manage services, manage booking requests, and request participation in workshops.
+- **Customers** discover local services and supplier products, request bookings, place supplier orders, attend (enroll in) workshops, review completed services, submit reports, and manage their profiles.
+- **Providers** publish and manage services, manage booking requests, and create and manage workshops, and approve/reject customer enrollments.
 - **Suppliers** manage product listings and process orders received for their listings.
 - **Admins** manage users and review, resolve, or dismiss reports.
 
@@ -37,7 +37,7 @@ ServiceHub is used primarily on phones but must also work well in desktop browse
 - Public CRUD-backed catalogues for provider services, supplier listings, and workshops, with ownership and publication rules enforced on the server.
 - Service booking lifecycle: `PENDING → ACCEPTED → IN_PROGRESS → COMPLETED`, with `PENDING → REJECTED`, `PENDING → CANCELLED`, and `ACCEPTED → CANCELLED`. Customer requested date/time values are local preferences; provider acceptance records the agreed pair, defaulting to the requested pair.
 - Supplier order lifecycle: `PENDING → ACCEPTED → COMPLETED`, with `PENDING → REJECTED`, `PENDING → CANCELLED`, and `ACCEPTED → CANCELLED`. Supplier listings have official stock/available-quantity validation, and stock is decremented safely on acceptance.
-- Workshop participation requests, organizer approval or rejection, and attendance tracking.
+- Workshop creation by providers, customer enrollment requests, organizer approval or rejection, and attendance tracking.
 - Reviews only after a customer's related booking is completed; one review per booking.
 - Reports for services, supplier listings, reviews, and workshops, with statuses `PENDING`, `UNDER_REVIEW`, `RESOLVED`, and `DISMISSED`; only admins can moderate them.
 - MongoDB persistence with server-derived identity and role authorization, validated status transitions, safe serialized responses, and indexes supporting real queries.

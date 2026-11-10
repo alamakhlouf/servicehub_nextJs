@@ -11,10 +11,15 @@ type Context = { params: Promise<{ id: string }> };
 export async function GET(request: Request, context: Context) {
   const { id } = await context.params;
   if (!ObjectId.isValid(id)) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
-  const record = await (await workshopsCollection()).findOne({ _id: new ObjectId(id), status: "PUBLISHED" });
+  const collection = await workshopsCollection();
+  const record = await collection.findOne({ _id: new ObjectId(id) });
   if (!record) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
+  if (record.status === "DRAFT") {
+    const user = await apiUser();
+    if (isApiError(user) || (user.role !== "ADMIN" && (user.role !== "PROVIDER" || user.id !== record.organizerId.toString()))) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
+  }
   const organizer = await findUserById(record.organizerId.toString());
-  return NextResponse.json({ workshop: toSafeWorkshop(record, organizer?.name) });
+  return NextResponse.json({ workshop: toSafeWorkshop(record, organizer?.name) }, record.status === "DRAFT" ? undefined : { headers: { "X-ServiceHub-Public": "1" } });
 }
 
 export async function PATCH(request: Request, context: Context) {
@@ -32,11 +37,14 @@ export async function PATCH(request: Request, context: Context) {
     if (!statusParsed.success) return NextResponse.json({ error: "Check the workshop status." }, { status: 400 });
     const status = statusParsed.data.status;
     if (!status || !canTransition(record.status, status)) return NextResponse.json({ error: `A ${record.status.toLowerCase()} workshop cannot become ${String(status).toLowerCase()}.` }, { status: 400 });
+    if (status === "PUBLISHED" && record.startAt <= new Date()) return NextResponse.json({ error: "A workshop must start in the future." }, { status: 400 });
     if (status === "COMPLETED" && record.startAt > new Date()) return NextResponse.json({ error: "A workshop can only be completed after it starts." }, { status: 400 });
-    await collection.updateOne({ _id: record._id }, { $set: { status, updatedAt: new Date() } });
+    await collection.updateOne({ _id: record._id }, { $set: { status, updatedAt: new Date(), ...(status === "CANCELLED" ? { approvedParticipantCount: 0 } : {}) } });
+    if (status === "CANCELLED") await (await participantsCollection()).updateMany({ workshopId: record._id, status: { $in: ["PENDING", "APPROVED"] } }, { $set: { status: "CANCELLED", updatedAt: new Date() } });
     const updatedStatus = await collection.findOne({ _id: record._id });
     return NextResponse.json({ workshop: toSafeWorkshop(updatedStatus!, user.name) });
   }
+  if (record.status === "COMPLETED" || record.status === "CANCELLED") return NextResponse.json({ error: "Completed and cancelled workshops are terminal." }, { status: 400 });
   const parsed = workshopSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Check the highlighted fields.", fieldErrors: parsed.error.flatten().fieldErrors }, { status: 400 });
   const startAt = new Date(parsed.data.startAt);
@@ -58,7 +66,7 @@ export async function DELETE(request: Request, context: Context) {
   const record = await collection.findOne({ _id: new ObjectId(id), ...(user.role === "ADMIN" ? {} : { organizerId: new ObjectId(user.id) }) });
   if (!record) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
   if (record.status === "COMPLETED" || record.status === "CANCELLED") return NextResponse.json({ error: "This workshop is already closed." }, { status: 400 });
-  await collection.updateOne({ _id: record._id }, { $set: { status: "CANCELLED", updatedAt: new Date() } });
+  await collection.updateOne({ _id: record._id }, { $set: { status: "CANCELLED", approvedParticipantCount: 0, updatedAt: new Date() } });
   await (await participantsCollection()).updateMany({ workshopId: record._id, status: { $in: ["PENDING", "APPROVED"] } }, { $set: { status: "CANCELLED", updatedAt: new Date() } });
   return NextResponse.json({ cancelled: true });
 }

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Avatar, Badge, Button } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import type { Role, SafeUser } from "@/types/auth";
+import { clearWorkshopParticipationDrafts } from "@/lib/pwa/workshop-participation";
 
 type NavigationProps = {
   user: SafeUser | null;
@@ -33,11 +34,12 @@ const accountLinks: NavLink[] = [
 ];
 
 const roleLinks: Record<Role, NavLink[]> = {
-  CUSTOMER: [],
+  CUSTOMER: [
+    { href: "/dashboard/my-participation", label: "My enrollments" },
+  ],
   PROVIDER: [
     { href: "/dashboard/my-services", label: "My services" },
     { href: "/dashboard/my-workshops", label: "My workshops" },
-    { href: "/dashboard/my-participation", label: "Workshop participation" },
   ],
   SUPPLIER: [
     { href: "/dashboard/my-listings", label: "My listings" },
@@ -60,6 +62,7 @@ export function Navigation({ user }: NavigationProps) {
   async function logout() {
     setLoggingOut(true);
     try {
+      if (user) await clearWorkshopParticipationDrafts(user.id);
       await fetch("/api/auth/logout", { method: "POST" });
       router.push("/");
       router.refresh();

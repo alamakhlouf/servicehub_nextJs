@@ -12,6 +12,6 @@ export type SafeWorkshop = {
 };
 
 export type SafeWorkshopParticipant = {
-  id: string; workshopId: string; providerId: string; providerName?: string; note?: string;
+  id: string; workshopId: string; customerId: string; customerName?: string; note?: string;
   clientRequestId?: string; status: ParticipationStatus; attendance: AttendanceStatus; createdAt: string; updatedAt: string;
 };
