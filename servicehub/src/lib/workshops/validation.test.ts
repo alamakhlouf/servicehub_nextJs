@@ -14,6 +14,14 @@ describe("workshop validation", () => {
     expect(workshopSchema.safeParse({ title: "A", description: "Short", category: "Home", location: "Hall", startAt: new Date().toISOString(), endAt: new Date().toISOString(), capacity: 0 }).success).toBe(false);
     expect(participationSchema.safeParse({ note: "x".repeat(501) }).success).toBe(false);
   });
+
+  it("validates online workshop fields and publishing requirements", () => {
+    const base = { title: "Online repair", description: "Learn practical repair skills.", category: "Home", startAt: new Date(Date.now() + 86_400_000).toISOString(), endAt: new Date(Date.now() + 86_400_000 + 3_600_000).toISOString(), capacity: 10, format: "ONLINE" as const, location: "" };
+    expect(workshopSchema.safeParse({ ...base, status: "DRAFT" }).success).toBe(true);
+    expect(workshopSchema.safeParse({ ...base, status: "PUBLISHED" }).success).toBe(false);
+    expect(workshopSchema.safeParse({ ...base, meetingUrl: "http://example.com" }).success).toBe(false);
+    expect(workshopSchema.safeParse({ ...base, meetingUrl: "https://example.com", status: "PUBLISHED" }).success).toBe(true);
+  });
 });
 
 describe("workshop lifecycle", () => {

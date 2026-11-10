@@ -25,6 +25,7 @@ function isPublicApi(request, url) {
     /^\/api\/suppliers\/[a-f0-9]{24}$/.test(url.pathname) ||
     /^\/api\/suppliers\/profile\/[a-f0-9]{24}$/.test(url.pathname) ||
     url.pathname === "/api/workshops" ||
+    url.pathname === "/api/workshops/categories" ||
     /^\/api\/workshops\/[a-f0-9]{24}$/.test(url.pathname);
 }
 
@@ -55,6 +56,7 @@ function isPublicStatic(request, url) {
 function staleResponse(response) {
   const headers = new Headers(response.headers);
   headers.set("X-ServiceHub-Cache", "stale");
+  headers.set("X-ServiceHub-Offline-Label", "Offline copy — may be outdated");
   return response.clone().blob().then((body) => new Response(body, {
     status: response.status,
     statusText: response.statusText,
@@ -62,11 +64,11 @@ function staleResponse(response) {
   }));
 }
 
-async function networkFirst(request, cacheName) {
+async function networkFirst(request, cacheName, publicOnly = false) {
   const cache = await caches.open(cacheName);
   try {
     const response = await fetch(request);
-    if (response.ok) await cache.put(request, response.clone());
+    if (response.ok && (!publicOnly || response.headers.get("X-ServiceHub-Public") === "1")) await cache.put(request, response.clone());
     return response;
   } catch {
     const cached = await cache.match(request);
@@ -113,7 +115,7 @@ self.addEventListener("fetch", (event) => {
   if (isPublicApi(request, url)) {
     const cacheName = url.pathname.startsWith("/api/services") ? CACHES.services :
       url.pathname.startsWith("/api/suppliers") ? CACHES.suppliers : CACHES.workshops;
-    event.respondWith(networkFirst(request, cacheName));
+    event.respondWith(networkFirst(request, cacheName, url.pathname.startsWith("/api/workshops")));
     return;
   }
   if (isPublicPage(request, url)) {

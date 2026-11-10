@@ -1,8 +1,9 @@
 import type { SafeWorkshopParticipant } from "@/types/workshop";
 
-export type WorkshopParticipationState = "PENDING_SYNC" | "FAILED" | "SUBMITTED";
+export type WorkshopParticipationState = "DRAFT" | "PENDING_SYNC" | "FAILED";
 export type WorkshopParticipationDraft = {
   id: string;
+  userId: string;
   workshopId: string;
   note: string;
   clientRequestId: string;
@@ -13,7 +14,7 @@ export type WorkshopParticipationDraft = {
 };
 
 export type WorkshopParticipationSyncResult = {
-  state: "SUBMITTED";
+  state: "PENDING";
   participant?: SafeWorkshopParticipant;
   duplicate: boolean;
 };
@@ -49,6 +50,10 @@ async function transaction<T>(mode: IDBTransactionMode, action: (store: IDBObjec
 export const saveWorkshopParticipationDraft = (draft: WorkshopParticipationDraft) => transaction("readwrite", (store) => store.put(draft));
 export const deleteWorkshopParticipationDraft = (id: string) => transaction("readwrite", (store) => store.delete(id));
 export async function listWorkshopParticipationDrafts() { return (await transaction<WorkshopParticipationDraft[]>("readonly", (store) => store.getAll())) as WorkshopParticipationDraft[]; }
+export async function clearWorkshopParticipationDrafts(userId: string) {
+  const drafts = (await listWorkshopParticipationDrafts()).filter((draft) => draft.userId === userId);
+  await Promise.all(drafts.map((draft) => deleteWorkshopParticipationDraft(draft.id)));
+}
 
 export async function syncWorkshopParticipationDraft(
   draft: WorkshopParticipationDraft,
@@ -66,8 +71,8 @@ export async function syncWorkshopParticipationDraft(
   }
 
   const data = await response.json().catch(() => ({})) as { participant?: SafeWorkshopParticipant; duplicate?: boolean; error?: string };
-  if (response.ok && data.participant) return { state: "SUBMITTED", participant: data.participant, duplicate: false };
-  if (response.status === 409 && data.duplicate === true && data.participant) return { state: "SUBMITTED", participant: data.participant, duplicate: true };
+  if (response.ok && data.participant) return { state: "PENDING", participant: data.participant, duplicate: false };
+  if (response.status === 409 && data.duplicate === true && data.participant) return { state: "PENDING", participant: data.participant, duplicate: true };
   throw new Error(data.error ?? `Synchronization failed with status ${response.status}.`);
 }
 
@@ -75,11 +80,13 @@ export async function syncAndPersistWorkshopParticipationDraft(
   draft: WorkshopParticipationDraft,
   request: typeof fetch = fetch,
   persist: (draft: WorkshopParticipationDraft) => Promise<unknown> = saveWorkshopParticipationDraft,
+  remove: (id: string) => Promise<unknown> = deleteWorkshopParticipationDraft,
 ) {
   try {
     const result = await syncWorkshopParticipationDraft(draft, request);
-    const updated = { ...draft, state: result.state, participant: result.participant, error: undefined, updatedAt: new Date().toISOString() };
+    const updated = { ...draft, state: "DRAFT" as const, participant: result.participant, error: undefined, updatedAt: new Date().toISOString() };
     await persist(updated);
+    await remove(draft.id);
     return updated;
   } catch (reason) {
     const updated = { ...draft, state: "FAILED" as const, error: reason instanceof Error ? reason.message : "Synchronization failed.", updatedAt: new Date().toISOString() };
