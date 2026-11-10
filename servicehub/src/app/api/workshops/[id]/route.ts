@@ -5,6 +5,7 @@ import { findUserById } from "@/lib/auth/users";
 import { durationMinutes, workshopSchema } from "@/lib/workshops/validation";
 import { canTransition, toSafeWorkshop, workshopsCollection } from "@/lib/workshops/workshops";
 import { participantsCollection } from "@/lib/workshops/participants";
+import { createWorkshopNotification } from "@/lib/workshops/notifications";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -38,9 +39,14 @@ export async function PATCH(request: Request, context: Context) {
     const status = statusParsed.data.status;
     if (!status || !canTransition(record.status, status)) return NextResponse.json({ error: `A ${record.status.toLowerCase()} workshop cannot become ${String(status).toLowerCase()}.` }, { status: 400 });
     if (status === "PUBLISHED" && record.startAt <= new Date()) return NextResponse.json({ error: "A workshop must start in the future." }, { status: 400 });
+    if (status === "PUBLISHED" && (record.format ?? "IN_PERSON") === "ONLINE" && !record.meetingUrl) return NextResponse.json({ error: "A meeting link is required to publish an online workshop." }, { status: 400 });
     if (status === "COMPLETED" && record.startAt > new Date()) return NextResponse.json({ error: "A workshop can only be completed after it starts." }, { status: 400 });
     await collection.updateOne({ _id: record._id }, { $set: { status, updatedAt: new Date(), ...(status === "CANCELLED" ? { approvedParticipantCount: 0 } : {}) } });
-    if (status === "CANCELLED") await (await participantsCollection()).updateMany({ workshopId: record._id, status: { $in: ["PENDING", "APPROVED"] } }, { $set: { status: "CANCELLED", updatedAt: new Date() } });
+    if (status === "CANCELLED") {
+      const participants = await (await participantsCollection()).find({ workshopId: record._id, status: { $in: ["PENDING", "APPROVED"] } }).toArray();
+      await (await participantsCollection()).updateMany({ workshopId: record._id, status: { $in: ["PENDING", "APPROVED"] } }, { $set: { status: "CANCELLED", updatedAt: new Date() } });
+      await Promise.all(participants.map((participant) => createWorkshopNotification({ userId: participant.customerId, workshopId: record._id, participantId: participant._id, type: "WORKSHOP_CANCELLED", title: "Workshop cancelled", message: `The workshop "${record.title}" was cancelled.` })));
+    }
     const updatedStatus = await collection.findOne({ _id: record._id });
     return NextResponse.json({ workshop: toSafeWorkshop(updatedStatus!, user.name) });
   }
@@ -52,7 +58,22 @@ export async function PATCH(request: Request, context: Context) {
   if (duration < 15 || duration > 1440 || startAt <= new Date()) return NextResponse.json({ error: "Choose a future start time and a duration between 15 minutes and 24 hours." }, { status: 400 });
   if (parsed.data.capacity < record.approvedParticipantCount) return NextResponse.json({ error: "Capacity cannot be lower than approved participants." }, { status: 400 });
   if (parsed.data.status && !canTransition(record.status, parsed.data.status)) return NextResponse.json({ error: `A ${record.status.toLowerCase()} workshop cannot become ${parsed.data.status.toLowerCase()}.` }, { status: 400 });
-  await collection.updateOne({ _id: record._id }, { $set: { ...parsed.data, imageUrl: parsed.data.imageUrl || undefined, startAt, durationMinutes: duration, updatedAt: new Date() } });
+  const changedFields = [
+    parsed.data.startAt !== record.startAt.toISOString() ? "date" : null,
+    parsed.data.location !== record.location ? "location" : null,
+    parsed.data.format !== (record.format ?? "IN_PERSON") ? "format" : null,
+    parsed.data.meetingUrl !== record.meetingUrl ? "meetingLink" : null,
+  ].filter((field): field is "date" | "location" | "format" | "meetingLink" => Boolean(field));
+  await collection.updateOne({ _id: record._id }, { $set: { ...parsed.data, location: parsed.data.format === "ONLINE" ? "Online" : parsed.data.location, meetingUrl: parsed.data.meetingUrl || undefined, imageUrl: parsed.data.imageUrl || undefined, startAt, durationMinutes: duration, updatedAt: new Date() } });
+  if (changedFields.length) {
+    const enrolled = await (await participantsCollection()).find({ workshopId: record._id, status: { $in: ["PENDING", "APPROVED"] } }).toArray();
+    await Promise.all(enrolled.map((participant) => createWorkshopNotification({
+      userId: participant.customerId, workshopId: record._id, participantId: participant._id, type: "WORKSHOP_UPDATED",
+      title: "Workshop updated",
+      message: changedFields.includes("meetingLink") ? `The workshop "${record.title}" was updated. The meeting link was updated. Open the workshop to see it.` : `The workshop "${record.title}" was updated.`,
+      changedFields,
+    })));
+  }
   const updated = await collection.findOne({ _id: record._id });
   return NextResponse.json({ workshop: toSafeWorkshop(updated!, user.name) });
 }

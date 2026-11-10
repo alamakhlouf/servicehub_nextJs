@@ -7,6 +7,7 @@ import { Avatar, Badge, Button } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import type { Role, SafeUser } from "@/types/auth";
 import { clearWorkshopParticipationDrafts } from "@/lib/pwa/workshop-participation";
+import { NotificationBell } from "@/components/workshops/notification-bell";
 
 type NavigationProps = {
   user: SafeUser | null;
@@ -92,9 +93,9 @@ export function Navigation({ user }: NavigationProps) {
             </Link>
             <p className="hidden text-sm text-text-muted sm:block">{user ? `Welcome back, ${user.name}` : "A clearer way to find local help."}</p>
           </div>
-          {user ? <div className="flex items-center gap-3"><Avatar name={user.name} size="sm" /><span className="hidden text-sm font-semibold text-text sm:block">{user.name}</span></div> : <div className="flex items-center gap-2"><Link className="rounded-md px-3 py-2 text-sm font-semibold text-text-muted hover:text-text" href="/login">Log in</Link><Link className="inline-flex min-h-9 items-center rounded-md bg-primary px-3 text-xs font-semibold text-white hover:bg-primary-hover sm:px-4 sm:text-sm" href="/signup">Join ServiceHub</Link></div>}
+          {user ? <div className="flex items-center gap-3">{user.role === "CUSTOMER" ? <NotificationBell /> : null}<Avatar name={user.name} size="sm" /><span className="hidden text-sm font-semibold text-text sm:block">{user.name}</span></div> : <div className="flex items-center gap-2"><Link className="rounded-md px-3 py-2 text-sm font-semibold text-text-muted hover:text-text" href="/login">Log in</Link><Link className="inline-flex min-h-9 items-center rounded-md bg-primary px-3 text-xs font-semibold text-white hover:bg-primary-hover sm:px-4 sm:text-sm" href="/signup">Join ServiceHub</Link></div>}
         </div>
-        {mobileOpen ? <nav aria-label="Mobile navigation" className="border-t border-border px-4 py-3 sm:px-6 lg:hidden" id="mobile-navigation">{links.map((link) => <NavigationLink active={isActive(link.href)} link={link} onNavigate={() => setMobileOpen(false)} key={link.href} />)}{user ? <div className="mt-3 border-t border-border pt-3"><AccountArea loggingOut={loggingOut} onLogout={() => void logout()} user={user} compact /></div> : null}</nav> : null}
+        {mobileOpen ? <nav aria-label="Mobile navigation" className="border-t border-border px-4 py-3 sm:px-6 lg:hidden" id="mobile-navigation">{user?.role === "CUSTOMER" ? <div className="mb-3"><NotificationBell /></div> : null}{links.map((link) => <NavigationLink active={isActive(link.href)} link={link} onNavigate={() => setMobileOpen(false)} key={link.href} />)}{user ? <div className="mt-3 border-t border-border pt-3"><AccountArea loggingOut={loggingOut} onLogout={() => void logout()} user={user} compact /></div> : null}</nav> : null}
       </header>
     </>
   );

@@ -25,6 +25,7 @@ function isPublicApi(request, url) {
     /^\/api\/suppliers\/[a-f0-9]{24}$/.test(url.pathname) ||
     /^\/api\/suppliers\/profile\/[a-f0-9]{24}$/.test(url.pathname) ||
     url.pathname === "/api/workshops" ||
+    url.pathname === "/api/workshops/categories" ||
     /^\/api\/workshops\/[a-f0-9]{24}$/.test(url.pathname);
 }
 
@@ -120,7 +121,6 @@ self.addEventListener("fetch", (event) => {
   if (isPublicPage(request, url)) {
     const cacheName = url.pathname.startsWith("/services/") ? CACHES.services :
       url.pathname.startsWith("/suppliers/") ? CACHES.suppliers : CACHES.workshops;
-    if (url.pathname.startsWith("/workshops/")) return;
     event.respondWith(networkFirst(request, cacheName));
     return;
   }

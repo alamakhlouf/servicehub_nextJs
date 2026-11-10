@@ -222,3 +222,9 @@ Public API responses are cacheable only for published workshop content. Enrollme
 - Cancelling a workshop moves PENDING/APPROVED enrollments to `CANCELLED`.
 - Cancelled/completed workshop detail pages stay reachable by historical links with a clear status banner.
 - Capacity is derived from approved enrollment records using a conditional/transactional update (no separate counter unless needed).
+
+## Enhancements
+
+- Public workshop discovery supports shareable category, date, text, and availability filters with offline-aware results.
+- Workshops include skill level, learning points, requirements, format, and private online meeting links with approved-customer access.
+- Customers receive private in-app notifications for enrollment decisions, cancellations, and meaningful workshop updates.

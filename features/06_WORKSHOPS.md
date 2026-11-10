@@ -124,3 +124,9 @@ Enrollments:
 - Capacity and ownership are validated by the server.
 - Public workshop information is available offline after being loaded online.
 - An offline enrollment draft is never presented as an approved registration.
+
+## Enhancements
+
+- Public workshop discovery supports shareable category, date, text, and availability filters with offline-aware results.
+- Workshops include skill level, learning points, requirements, format, and private online meeting links with approved-customer access.
+- Customers receive private in-app notifications for enrollment decisions, cancellations, and meaningful workshop updates.

@@ -4,6 +4,7 @@ import { apiUser, isApiError } from "@/lib/auth/api-guards";
 import { participantsCollection, toSafeParticipant } from "@/lib/workshops/participants";
 import { workshopsCollection } from "@/lib/workshops/workshops";
 import { participantUpdateSchema } from "@/lib/workshops/validation";
+import { createWorkshopNotification } from "@/lib/workshops/notifications";
 
 type Context = { params: Promise<{ id: string; participantId?: string }> };
 
@@ -55,6 +56,14 @@ export async function PATCH(request: Request, context: Context) {
     await workshops.updateOne({ _id: workshopId, approvedParticipantCount: { $gt: 0 } }, { $inc: { approvedParticipantCount: -1 }, $set: { updatedAt: new Date() } });
   }
   await collection.updateOne({ _id: participantObjectId }, { $set: { ...parsed.data, updatedAt: new Date() } });
+  if (parsed.data.status === "APPROVED" || parsed.data.status === "REJECTED") {
+    await createWorkshopNotification({
+      userId: participant.customerId, workshopId: workshop._id, participantId: participant._id,
+      type: parsed.data.status === "APPROVED" ? "ENROLLMENT_APPROVED" : "ENROLLMENT_REJECTED",
+      title: parsed.data.status === "APPROVED" ? "Enrollment approved" : "Enrollment rejected",
+      message: `Your enrollment for "${workshop.title}" was ${parsed.data.status.toLowerCase()}.`,
+    });
+  }
   const updated = await collection.findOne({ _id: participantObjectId });
   return NextResponse.json({ participant: toSafeParticipant(updated!) });
 }
