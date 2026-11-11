@@ -5,8 +5,22 @@ import { findUserById } from "@/lib/auth/users";
 import { participantsCollection, toSafeParticipant } from "@/lib/workshops/participants";
 import { workshopsCollection } from "@/lib/workshops/workshops";
 import { participationSchema } from "@/lib/workshops/validation";
+import { createNotification } from "@/lib/notifications/notifications";
 
 type Context = { params: Promise<{ id: string }> };
+
+async function notifyOrganizer(workshopId: ObjectId, participantId: ObjectId, providerName: string) {
+  const workshop = await (await workshopsCollection()).findOne({ _id: workshopId });
+  if (!workshop) return;
+  await createNotification({
+    recipientId: workshop.organizerId,
+    eventKey: `workshop-participation:${participantId.toString()}`,
+    kind: "WORKSHOP_PARTICIPATION",
+    title: "New workshop signup",
+    message: `${providerName} requested to join ${workshop.title}.`,
+    href: `/dashboard/my-workshops/${workshop._id.toString()}/participants`,
+  });
+}
 
 export async function GET(request: Request, context: Context) {
   const { id } = await context.params;
@@ -28,7 +42,10 @@ export async function POST(request: Request, context: Context) {
   const collection = await participantsCollection();
   if (parsed.data.clientRequestId) {
     const idempotent = await collection.findOne({ workshopId: new ObjectId(id), providerId: new ObjectId(user.id), clientRequestId: parsed.data.clientRequestId });
-    if (idempotent) return NextResponse.json({ participant: toSafeParticipant(idempotent, user.name), duplicate: true });
+    if (idempotent) {
+      await notifyOrganizer(idempotent.workshopId, idempotent._id, user.name);
+      return NextResponse.json({ participant: toSafeParticipant(idempotent, user.name), duplicate: true });
+    }
   }
   const workshop = await (await workshopsCollection()).findOne({ _id: new ObjectId(id), status: "PUBLISHED" });
   if (!workshop) return NextResponse.json({ error: "This workshop is not accepting participation requests." }, { status: 400 });
@@ -40,9 +57,13 @@ export async function POST(request: Request, context: Context) {
   try { await collection.insertOne(participant); } catch {
     if (parsed.data.clientRequestId) {
       const duplicate = await collection.findOne({ workshopId: workshop._id, providerId: new ObjectId(user.id), clientRequestId: parsed.data.clientRequestId });
-      if (duplicate) return NextResponse.json({ participant: toSafeParticipant(duplicate, user.name), duplicate: true });
+      if (duplicate) {
+        await notifyOrganizer(duplicate.workshopId, duplicate._id, user.name);
+        return NextResponse.json({ participant: toSafeParticipant(duplicate, user.name), duplicate: true });
+      }
     }
     return NextResponse.json({ error: "A participation request already exists." }, { status: 409 });
   }
+  await notifyOrganizer(workshop._id, participant._id, user.name);
   return NextResponse.json({ participant: toSafeParticipant(participant, user.name) }, { status: 201 });
 }

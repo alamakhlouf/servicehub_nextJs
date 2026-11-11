@@ -4,6 +4,7 @@ import { apiUser, isApiError } from "@/lib/auth/api-guards";
 import { listingsCollection, toSafeListing } from "@/lib/suppliers/listings";
 import { ordersCollection, toSafeOrder } from "@/lib/suppliers/orders";
 import { supplierOrderSchema } from "@/lib/suppliers/validation";
+import { createNotification } from "@/lib/notifications/notifications";
 
 export async function POST(request: Request) {
   const user = await apiUser(["CUSTOMER", "PROVIDER"]);
@@ -15,6 +16,14 @@ export async function POST(request: Request) {
   const now = new Date();
   const order = { _id: new ObjectId(), listingId: listing._id, supplierId: listing.supplierId, customerId: new ObjectId(user.id), quantity: parsed.data.quantity, unitPriceSnapshot: listing.unitPrice, totalSnapshot: listing.unitPrice * parsed.data.quantity, contactName: parsed.data.contactName, contactPhone: parsed.data.contactPhone, ...(parsed.data.note ? { note: parsed.data.note } : {}), status: "PENDING" as const, createdAt: now, updatedAt: now };
   await (await ordersCollection()).insertOne(order);
+  await createNotification({
+    recipientId: order.supplierId,
+    eventKey: `supplier-order:${order._id.toString()}`,
+    kind: "SUPPLIER_ORDER",
+    title: "New supplier order",
+    message: `${user.name} ordered ${parsed.data.quantity} × ${listing.name}.`,
+    href: "/dashboard/supplier-orders",
+  });
   return NextResponse.json({ order: toSafeOrder(order, toSafeListing(listing)) }, { status: 201 });
 }
 

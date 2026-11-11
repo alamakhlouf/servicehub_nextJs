@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { syncQueuedBookings } from "@/lib/pwa/booking-queue";
 
 export function ServiceWorkerRegistration() {
   const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
@@ -13,6 +14,31 @@ export function ServiceWorkerRegistration() {
     const handleOffline = () => setOffline(true);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    const handleOfflineNavigation = (event: MouseEvent) => {
+      if (navigator.onLine || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest("a");
+      if (!anchor || anchor.target || anchor.hasAttribute("download")) return;
+      const destination = new URL(anchor.href, window.location.href);
+      if (destination.origin !== window.location.origin) return;
+      event.preventDefault();
+      window.location.assign(destination.href);
+    };
+    document.addEventListener("click", handleOfflineNavigation, true);
+    const handleOnlineSync = () => {
+      void syncQueuedBookings().catch((error: unknown) => {
+        console.error("Unable to synchronize queued bookings:", error);
+      });
+    };
+    window.addEventListener("online", handleOnlineSync);
+    if (navigator.onLine) handleOnlineSync();
+    const handleWorkerMessage = (event: MessageEvent<{ type?: string; clientRequestId?: string }>) => {
+      if (event.data?.type === "BOOKING_SYNCED") {
+        window.dispatchEvent(new CustomEvent("servicehub:booking-synced", { detail: { clientRequestId: event.data.clientRequestId } }));
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", handleWorkerMessage);
 
     let refreshing = false;
     const handleControllerChange = () => {
@@ -46,8 +72,11 @@ export function ServiceWorkerRegistration() {
 
     return () => {
       window.removeEventListener("online", handleOnline);
+      window.removeEventListener("online", handleOnlineSync);
       window.removeEventListener("offline", handleOffline);
+      document.removeEventListener("click", handleOfflineNavigation, true);
       navigator.serviceWorker?.removeEventListener("controllerchange", handleControllerChange);
+      navigator.serviceWorker?.removeEventListener("message", handleWorkerMessage);
     };
   }, []);
 

@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0b1220">
+    <title>ServiceHub</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0b1220; color: #f8fafc; }
+      * { box-sizing: border-box; }
+      body { min-width: 320px; min-height: 100vh; margin: 0; background: #0b1220; }
+      a, button { color: inherit; font: inherit; }
+      a:focus-visible, button:focus-visible { outline: 2px solid #3b82f6; outline-offset: 3px; }
+      .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 2; display: none; width: 256px; border-right: 1px solid #2b3852; background: #0b1220; }
+      .brand { display: block; padding: 24px; border-bottom: 1px solid #2b3852; color: #f8fafc; font-size: 18px; font-weight: 700; text-decoration: none; }
+      .brand span { color: #60a5fa; }
+      .tagline { margin: 8px 0 0; color: #71809a; font-size: 12px; font-weight: 400; }
+      nav { display: grid; gap: 4px; padding: 20px 12px; }
+      nav a { min-height: 42px; padding: 12px; border-radius: 6px; color: #a7b3c9; font-size: 14px; text-decoration: none; }
+      nav a:hover, nav a[aria-current="page"] { background: #202c46; color: #f8fafc; }
+      .workspace { min-height: 100vh; }
+      header { position: sticky; top: 0; z-index: 1; display: flex; min-height: 64px; align-items: center; padding: 0 16px; border-bottom: 1px solid #2b3852; background: #0b1220; }
+      .mobile-brand { color: #f8fafc; font-weight: 700; text-decoration: none; }
+      .mobile-brand span { color: #60a5fa; }
+      .mobile-nav { display: flex; max-width: calc(100vw - 120px); gap: 2px; margin-left: auto; overflow-x: auto; padding: 8px 0; }
+      .mobile-nav a { flex: 0 0 auto; padding: 10px 8px; border-radius: 6px; color: #a7b3c9; font-size: 12px; text-decoration: none; }
+      .mobile-nav a[aria-current="page"] { background: #202c46; color: #f8fafc; }
+      .welcome { display: none; margin-left: auto; color: #a7b3c9; font-size: 14px; }
+      main { width: min(100%, 1280px); margin: 0 auto; padding: 36px 16px 64px; }
+      .eyebrow { margin: 0 0 8px; color: #60a5fa; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(1.75rem, 5vw, 2.5rem); letter-spacing: -.03em; }
+      .intro { max-width: 680px; margin: 10px 0 24px; color: #a7b3c9; line-height: 1.65; }
+      .notice { margin: 20px 0; padding: 12px 14px; border: 1px solid #43516c; border-radius: 8px; background: #111a2e; color: #a7b3c9; font-size: 14px; line-height: 1.5; }
+      .notice.offline { border-color: rgb(245 158 11 / 40%); background: rgb(245 158 11 / 8%); color: #fde68a; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+      .card { padding: 20px; border: 1px solid #2b3852; border-radius: 14px; background: #111a2e; }
+      .card h2 { margin: 0; font-size: 18px; }
+      .card p { margin: 10px 0 0; color: #a7b3c9; font-size: 14px; line-height: 1.6; }
+      .meta { color: #60a5fa !important; font-size: 12px !important; font-weight: 600; }
+      .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+      .actions a, .actions button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: 0 14px; border: 1px solid #43516c; border-radius: 8px; background: #182238; text-decoration: none; cursor: pointer; }
+      .actions .primary { border-color: #2563eb; background: #2563eb; }
+      .empty { padding: 24px; border: 1px dashed #43516c; border-radius: 12px; color: #a7b3c9; line-height: 1.6; }
+      @media (min-width: 1024px) {
+        .sidebar { display: block; }
+        .workspace { margin-left: 256px; }
+        header { padding: 0 32px; }
+        .mobile-brand { display: none; }
+        .mobile-nav { display: none; }
+        .welcome { display: block; }
+        main { padding: 48px 32px 72px; }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="/">Service<span>Hub</span><p class="tagline">Local help, supplies, and skills.</p></a>
+      <nav aria-label="Primary navigation">
+        <a href="/">Discover</a>
+        <a href="/services">Services</a>
+        <a href="/suppliers">Suppliers</a>
+        <a href="/workshops">Workshops</a>
+        <a href="/dashboard/profile">Profile</a>
+      </nav>
+    </aside>
+    <div class="workspace">
+      <header>
+        <a class="mobile-brand" href="/">Service<span>Hub</span></a>
+        <nav aria-label="Mobile navigation" class="mobile-nav">
+          <a href="/">Discover</a>
+          <a href="/services">Services</a>
+          <a href="/suppliers">Suppliers</a>
+          <a href="/workshops">Workshops</a>
+        </nav>
+        <p class="welcome">A clearer way to find local help.</p>
+      </header>
+      <main>
+        <p class="eyebrow" id="eyebrow">ServiceHub</p>
+        <h1 id="title">You're offline</h1>
+        <p class="intro" id="intro">Checking this device for saved content…</p>
+        <div class="notice offline" id="status" role="status">Checking this device for saved content…</div>
+        <section aria-live="polite" class="grid" id="content"></section>
+        <section class="empty" hidden id="empty">This page has no saved content on this device. Reconnect to load the latest data.</section>
+        <div class="actions">
+          <button class="primary" id="retry" type="button">Try again</button>
+          <a href="/">Go to ServiceHub</a>
+        </div>
+      </main>
+    </div>
+    <script>
+      const routes = {
+        "/services": { title: "Services", plural: "services", cache: "services" },
+        "/suppliers": { title: "Suppliers", plural: "listings", cache: "suppliers" },
+        "/workshops": { title: "Workshops", plural: "workshops", cache: "workshops" },
+      };
+      const $ = (id) => document.getElementById(id);
+      let recoveryInProgress = false;
+      function element(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text) node.textContent = text;
+        return node;
+      }
+      function showCards(records, kind) {
+        const content = $("content");
+        for (const record of records) {
+          const card = element("article", "card");
+          const name = kind === "services" ? record.title : kind === "suppliers" ? record.name : record.title;
+          card.append(element("p", "meta", record.category || (kind === "suppliers" ? record.supplier?.name : record.provider?.name) || ""));
+          card.append(element("h2", "", name || "Saved listing"));
+          const description = record.description || record.bio || "";
+          if (description) card.append(element("p", "", description));
+          const details = kind === "services"
+            ? [record.city, record.price != null ? `${record.price} · ${record.priceUnit || "price"}` : ""]
+            : kind === "suppliers"
+              ? [record.city, record.unitPrice != null ? `${record.unitPrice} / ${record.unitLabel || "unit"}` : ""]
+              : [record.location, record.startAt ? new Date(record.startAt).toLocaleString() : ""];
+          const detailText = details.filter(Boolean).join(" · ");
+          if (detailText) card.append(element("p", "", detailText));
+          content.append(card);
+        }
+      }
+      async function findCachedApi(pathname, cacheHint) {
+        const names = (await caches.keys()).filter((name) => name.startsWith(`servicehub-${cacheHint}-`)).reverse();
+        for (const name of names) {
+          const cache = await caches.open(name);
+          const requests = (await cache.keys()).filter((request) => new URL(request.url).pathname === pathname);
+          for (const request of requests.reverse()) {
+            const response = await cache.match(request);
+            if (response?.ok) {
+              try { return await response.json(); } catch {}
+            }
+          }
+        }
+        return null;
+      }
+      async function renderOfflineContent() {
+        const path = location.pathname.replace(/\/$/, "") || "/";
+        const status = $("status");
+        status.textContent = "Checking your connection to ServiceHub…";
+        const route = routes[path];
+        const detail = path.match(/^\/(services|suppliers|workshops)\/([a-f\d]{24})$/i);
+        if (route) {
+          $("title").textContent = route.title;
+          $("intro").textContent = "Showing catalogue data saved on this device. It may be out of date.";
+          const data = await findCachedApi(`/api/${path.slice(1)}`, route.cache);
+          const records = data?.[route.plural];
+          if (Array.isArray(records) && records.length) {
+            showCards(records, route.cache);
+            $("status").textContent = "Offline copy — catalogue data may be outdated.";
+            $("status").classList.remove("offline");
+            return;
+          }
+        } else if (detail) {
+          const [, section, id] = detail;
+          const cacheHint = section === "services" ? "services" : section === "suppliers" ? "suppliers" : "workshops";
+          const key = section === "suppliers" ? "listing" : section === "workshops" ? "workshop" : "service";
+          $("title").textContent = section === "services" ? "Service details" : section === "suppliers" ? "Supplier details" : "Workshop details";
+          const data = await findCachedApi(`/api/${section}/${id}`, cacheHint);
+          if (data?.[key]) {
+            showCards([data[key]], cacheHint);
+            $("intro").textContent = "Showing details saved on this device. They may be out of date.";
+            $("status").textContent = "Offline copy — details may be outdated.";
+            $("status").classList.remove("offline");
+            return;
+          }
+        } else if (path === "/dashboard/profile") {
+          $("title").textContent = "Profile";
+          for (let index = 0; index < localStorage.length; index += 1) {
+            const key = localStorage.key(index);
+            if (!key?.startsWith("servicehub_profile_snapshot:")) continue;
+            try {
+              const profile = JSON.parse(localStorage.getItem(key));
+              const card = element("article", "card");
+              card.append(element("h2", "", profile.name || "Saved profile"));
+              card.append(element("p", "", profile.email || ""));
+              card.append(element("p", "meta", profile.role || ""));
+              card.append(element("p", "", [profile.city, profile.phone, profile.bio].filter(Boolean).join(" · ") || "No additional profile details saved."));
+              $("content").append(card);
+              $("intro").textContent = "Showing the profile snapshot saved on this device.";
+              $("status").textContent = "Offline copy — profile details may be outdated.";
+              $("status").classList.remove("offline");
+              return;
+            } catch {}
+          }
+        }
+        $("intro").textContent = "This page isn't available offline. Previously saved public catalogue content and profile data will appear here when available.";
+        $("empty").hidden = false;
+      }
+      document.querySelectorAll("nav a").forEach((link) => {
+        if (link.getAttribute("href") === location.pathname.replace(/\/$/, "") || (location.pathname === "/" && link.getAttribute("href") === "/")) {
+          link.setAttribute("aria-current", "page");
+        }
+      });
+      async function recoverIfReachable() {
+        if (recoveryInProgress) return;
+        if (!navigator.onLine) {
+          $("status").textContent = "You are offline. Showing saved content when available.";
+          return;
+        }
+        recoveryInProgress = true;
+        $("status").textContent = "Checking your connection to ServiceHub…";
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        try {
+          const response = await fetch(location.href, {
+            cache: "no-store",
+            credentials: "same-origin",
+            signal: controller.signal,
+          });
+          if (response.ok) {
+            location.replace(location.href);
+            return;
+          }
+          $("status").textContent = `ServiceHub responded with an error (${response.status}). Try again when it is available.`;
+        } catch (error) {
+          console.warn("Unable to reach ServiceHub from the offline fallback:", error);
+          $("status").textContent = navigator.onLine
+            ? "Your device is online, but ServiceHub couldn't be reached. Try again in a moment."
+            : "You are offline. Showing saved content when available.";
+        } finally {
+          clearTimeout(timeout);
+          recoveryInProgress = false;
+        }
+      }
+      $("retry").addEventListener("click", recoverIfReachable);
+      window.addEventListener("online", recoverIfReachable);
+      renderOfflineContent().catch(() => {
+        $("intro").textContent = "This page isn't available offline. Reconnect to load the latest data.";
+        $("empty").hidden = false;
+      }).finally(recoverIfReachable);
+    </script>
+  </body>
+</html>

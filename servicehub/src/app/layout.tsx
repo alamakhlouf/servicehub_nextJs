@@ -18,6 +18,7 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "ServiceHub",
   description: "A marketplace for local services, suppliers, and workshops.",
+  manifest: "/manifest.webmanifest",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

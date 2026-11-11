@@ -4,6 +4,7 @@ import { apiUser, isApiError } from "@/lib/auth/api-guards";
 import { findUserById } from "@/lib/auth/users";
 import { bookingsCollection, toSafeBooking } from "@/lib/bookings/bookings";
 import { isPastDateTime, bookingCreateSchema } from "@/lib/bookings/validation";
+import { createNotification } from "@/lib/notifications/notifications";
 import { servicesCollection } from "@/lib/services/services";
 
 export async function GET(request: Request) {
@@ -31,16 +32,44 @@ export async function POST(request: Request) {
   if (service.providerId.toString() === user.id) return NextResponse.json({ error: "You cannot book your own service." }, { status: 400 });
   const collection = await bookingsCollection();
   const existing = await collection.findOne({ customerId: new ObjectId(user.id), clientRequestId: parsed.data.clientRequestId });
-  if (existing) return NextResponse.json({ booking: toSafeBooking(existing), duplicate: true });
+  if (existing) {
+    await createNotification({
+      recipientId: existing.providerId,
+      eventKey: `booking:${existing._id.toString()}`,
+      kind: "BOOKING_REQUEST",
+      title: "New service booking",
+      message: `${user.name} requested ${existing.serviceTitle}.`,
+      href: "/dashboard/bookings",
+    });
+    return NextResponse.json({ booking: toSafeBooking(existing), duplicate: true });
+  }
   const now = new Date();
   const booking = { _id: new ObjectId(), serviceId: service._id, providerId: service.providerId, customerId: new ObjectId(user.id), serviceTitle: service.title, requestedDate: parsed.data.requestedDate, requestedTime: parsed.data.requestedTime, addressOrArea: parsed.data.addressOrArea, ...(parsed.data.note ? { note: parsed.data.note } : {}), clientRequestId: parsed.data.clientRequestId, status: "PENDING" as const, createdAt: now, updatedAt: now };
   try { await collection.insertOne(booking); } catch (error) {
     if (error instanceof Error && error.message.includes("duplicate")) {
       const duplicate = await collection.findOne({ customerId: booking.customerId, clientRequestId: booking.clientRequestId });
-      if (duplicate) return NextResponse.json({ booking: toSafeBooking(duplicate), duplicate: true });
+      if (duplicate) {
+        await createNotification({
+          recipientId: duplicate.providerId,
+          eventKey: `booking:${duplicate._id.toString()}`,
+          kind: "BOOKING_REQUEST",
+          title: "New service booking",
+          message: `${user.name} requested ${duplicate.serviceTitle}.`,
+          href: "/dashboard/bookings",
+        });
+        return NextResponse.json({ booking: toSafeBooking(duplicate), duplicate: true });
+      }
     }
     throw error;
   }
+  await createNotification({
+    recipientId: booking.providerId,
+    eventKey: `booking:${booking._id.toString()}`,
+    kind: "BOOKING_REQUEST",
+    title: "New service booking",
+    message: `${user.name} requested ${booking.serviceTitle}.`,
+    href: "/dashboard/bookings",
+  });
   const provider = await findUserById(booking.providerId.toString());
   return NextResponse.json({ booking: toSafeBooking(booking, provider?.name) }, { status: 201 });
 }

@@ -5,24 +5,45 @@ import { useState } from "react";
 import { Button, Card, Input, Textarea } from "@/components/ui";
 import type { SafeService } from "@/types/service";
 import type { SafeBooking } from "@/types/booking";
-import { saveQueuedBooking } from "@/lib/pwa/booking-queue";
+import { registerBookingBackgroundSync, saveQueuedBooking } from "@/lib/pwa/booking-queue";
 
 export function BookingForm({ service }: { service: SafeService }) {
   const [values, setValues] = useState({ requestedDate: "", requestedTime: "", addressOrArea: "", note: "" });
   const [state, setState] = useState<"idle" | "loading" | "success" | "offline" | "error">("idle");
   const [message, setMessage] = useState("");
   function update(field: keyof typeof values, value: string) { setValues((current) => ({ ...current, [field]: value })); }
+  async function savePendingBooking(payload: { serviceId: string; requestedDate: string; requestedTime: string; addressOrArea: string; note: string; clientRequestId: string }) {
+    try {
+      const now = new Date().toISOString();
+      await saveQueuedBooking({ ...payload, serviceTitle: service.title, ...(service.provider?.name ? { providerName: service.provider.name } : {}), state: "PENDING_SYNC", createdAt: now, updatedAt: now });
+      try {
+        await registerBookingBackgroundSync();
+      } catch (error) {
+        console.warn("Background booking sync is unavailable; the queue will sync when the app is online.", error);
+      }
+      setState("offline");
+      setMessage("Pending Sync — saved on this device and not yet sent.");
+    } catch (error) {
+      setState("error");
+      setMessage(error instanceof Error ? `We couldn't save this booking offline: ${error.message}` : "We couldn't save this booking offline.");
+    }
+  }
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setState("loading"); setMessage("");
     const clientRequestId = crypto.randomUUID();
     const payload = { ...values, serviceId: service.id, clientRequestId };
     if (!navigator.onLine) {
-      await saveQueuedBooking({ ...payload, serviceTitle: service.title, ...(service.provider?.name ? { providerName: service.provider.name } : {}), state: "PENDING_SYNC", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-      setState("offline"); setMessage("Pending Sync — saved on this device and not yet sent.");
+      await savePendingBooking(payload);
+      return;
+    }
+    let response: Response;
+    try {
+      response = await fetch("/api/bookings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    } catch {
+      await savePendingBooking(payload);
       return;
     }
     try {
-      const response = await fetch("/api/bookings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = (await response.json()) as { booking?: SafeBooking; error?: string };
       if (!response.ok || !data.booking) throw new Error(data.error ?? "We couldn't send the booking request.");
       setState("success"); setMessage("Request sent — awaiting provider confirmation.");
