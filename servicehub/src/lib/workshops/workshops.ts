@@ -1,11 +1,12 @@
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/db/database";
-import type { SafeWorkshop, WorkshopStatus } from "@/types/workshop";
+import type { SafeWorkshop, SkillLevel, WorkshopFormat, WorkshopStatus } from "@/types/workshop";
 
 export type WorkshopDocument = {
   _id: ObjectId; organizerId: ObjectId; title: string; description: string; category: string;
   location: string; startAt: Date; durationMinutes: number; capacity: number; approvedParticipantCount: number;
-  imageUrl?: string; status: WorkshopStatus; createdAt: Date; updatedAt: Date;
+  imageUrl?: string; skillLevel?: SkillLevel; learningPoints?: string[]; requirements?: string[];
+  format?: WorkshopFormat; meetingUrl?: string; status: WorkshopStatus; createdAt: Date; updatedAt: Date;
 };
 
 export async function workshopsCollection() {
@@ -18,8 +19,8 @@ export async function workshopsCollection() {
   return collection;
 }
 
-export function toSafeWorkshop(workshop: WorkshopDocument, organizerName?: string): SafeWorkshop {
-  return { id: workshop._id.toString(), organizerId: workshop.organizerId.toString(), ...(organizerName ? { organizerName } : {}), title: workshop.title, description: workshop.description, category: workshop.category, location: workshop.location, startAt: workshop.startAt.toISOString(), durationMinutes: workshop.durationMinutes, capacity: workshop.capacity, approvedParticipantCount: workshop.approvedParticipantCount, ...(workshop.imageUrl ? { imageUrl: workshop.imageUrl } : {}), status: workshop.status, createdAt: workshop.createdAt.toISOString(), updatedAt: workshop.updatedAt.toISOString() };
+export function toSafeWorkshop(workshop: WorkshopDocument, organizerName?: string, approvedParticipantCount = workshop.approvedParticipantCount ?? 0, includePrivate = false): SafeWorkshop {
+  return { id: workshop._id.toString(), organizerId: workshop.organizerId.toString(), ...(organizerName ? { organizerName } : {}), title: workshop.title, description: workshop.description, category: workshop.category, location: workshop.location, startAt: workshop.startAt.toISOString(), durationMinutes: workshop.durationMinutes, capacity: workshop.capacity, approvedParticipantCount, ...(workshop.imageUrl ? { imageUrl: workshop.imageUrl } : {}), skillLevel: workshop.skillLevel ?? "ALL_LEVELS", learningPoints: workshop.learningPoints ?? [], requirements: workshop.requirements ?? [], format: workshop.format ?? "IN_PERSON", ...(includePrivate && workshop.meetingUrl ? { meetingUrl: workshop.meetingUrl } : {}), status: workshop.status, createdAt: workshop.createdAt.toISOString(), updatedAt: workshop.updatedAt.toISOString() };
 }
 
 export function canTransition(from: WorkshopStatus, to: WorkshopStatus) {

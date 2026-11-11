@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { syncAndPersistWorkshopParticipationDraft, syncWorkshopParticipationDraft, type WorkshopParticipationDraft } from "./workshop-participation";
 
-const draft: WorkshopParticipationDraft = { id: "local-1", workshopId: "workshop-1", note: "I can help.", clientRequestId: "request-1", state: "PENDING_SYNC", updatedAt: "2026-01-01T00:00:00.000Z" };
-const participant = { id: "participant-1", workshopId: "workshop-1", providerId: "provider-1", status: "PENDING", attendance: "NOT_MARKED", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" } as const;
+const draft: WorkshopParticipationDraft = { id: "local-1", userId: "customer-1", workshopId: "workshop-1", note: "I can help.", clientRequestId: "request-1", state: "PENDING_SYNC", updatedAt: "2026-01-01T00:00:00.000Z" };
+const participant = { id: "participant-1", workshopId: "workshop-1", customerId: "customer-1", status: "PENDING", attendance: "NOT_MARKED", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" } as const;
 const response = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 describe("workshop participation synchronization", () => {
@@ -20,13 +20,13 @@ describe("workshop participation synchronization", () => {
 
   it("accepts only a verified idempotent duplicate as a successful retry", async () => {
     const result = await syncWorkshopParticipationDraft(draft, async () => response(409, { duplicate: true, participant }));
-    expect(result).toEqual({ state: "SUBMITTED", participant, duplicate: true });
+    expect(result).toEqual({ state: "PENDING", participant, duplicate: true });
   });
 
-  it("persists successful synchronization as SUBMITTED", async () => {
+  it("persists successful synchronization as server-pending", async () => {
     let saved: WorkshopParticipationDraft | undefined;
-    const result = await syncAndPersistWorkshopParticipationDraft(draft, async () => response(201, { participant }), async (value) => { saved = value; });
-    expect(result.state).toBe("SUBMITTED");
+    const result = await syncAndPersistWorkshopParticipationDraft(draft, async () => response(201, { participant }), async (value) => { saved = value; }, async () => undefined);
+    expect(result.state).toBe("DRAFT");
     expect(saved?.participant?.id).toBe("participant-1");
   });
 
@@ -36,9 +36,9 @@ describe("workshop participation synchronization", () => {
     const result = await syncAndPersistWorkshopParticipationDraft({ ...draft, state: "FAILED", error: "offline" }, async () => {
       attempts += 1;
       return response(201, { participant });
-    }, async (value) => { saved = value; });
+    }, async (value) => { saved = value; }, async () => undefined);
     expect(attempts).toBe(1);
-    expect(result.state).toBe("SUBMITTED");
+    expect(result.state).toBe("DRAFT");
     expect(saved?.error).toBeUndefined();
   });
 

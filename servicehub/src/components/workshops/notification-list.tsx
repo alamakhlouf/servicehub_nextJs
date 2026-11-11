@@ -1,0 +1,17 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { Badge, Button, Card } from "@/components/ui";
+
+type Item = { id: string; workshopId: string; type: string; title: string; message: string; readAt: string | null; createdAt: string };
+function relativeTime(value: string) { const seconds = Math.round((Date.now() - new Date(value).getTime()) / 1000); if (seconds < 60) return "just now"; if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`; if (seconds < 86400) return `${Math.round(seconds / 3600)}h ago`; return `${Math.round(seconds / 86400)}d ago`; }
+
+export function NotificationList() {
+  const [items, setItems] = useState<Item[]>([]); const [error, setError] = useState(""); const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => { setError(""); setLoading(true); try { const response = await fetch("/api/my-workshop-notifications?limit=50", { cache: "no-store" }); if (!response.ok) throw new Error(); setItems((await response.json() as { items: Item[] }).items); } catch { setError("You're offline — notifications can't be loaded"); } finally { setLoading(false); } }, []);
+  useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
+  async function markRead(id: string) { await fetch(`/api/my-workshop-notifications/${id}`, { method: "PATCH" }); setItems((current) => current.map((item) => item.id === id ? { ...item, readAt: new Date().toISOString() } : item)); }
+  async function readAll() { await fetch("/api/my-workshop-notifications/read-all", { method: "POST" }); setItems((current) => current.map((item) => ({ ...item, readAt: new Date().toISOString() }))); }
+  return <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8 lg:py-16"><div className="mx-auto w-full max-w-3xl"><div className="flex items-center justify-between gap-4"><h1 className="font-display text-3xl font-bold">Notifications</h1><Button onClick={() => void readAll()} size="sm" variant="outline">Mark all as read</Button></div>{error ? <div className="mt-6 rounded-md border border-error/50 bg-error/10 p-4 text-sm text-red-100" role="alert">{error}<Button className="ml-3" onClick={() => void load()} size="sm" variant="outline">Retry</Button></div> : null}{loading ? <p className="mt-8 text-text-muted">Loading notifications…</p> : items.length ? <div className="mt-8 space-y-3">{items.map((item) => <Card className="p-4" key={item.id}><div className="flex gap-3"><span aria-hidden="true" className={item.readAt ? "mt-2 size-2" : "mt-2 size-2 rounded-full bg-blue-400"} />{!item.readAt ? <span className="sr-only">Unread</span> : null}<div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><h2 className="font-semibold">{item.title}</h2><Badge tone={item.type === "ENROLLMENT_APPROVED" ? "success" : item.type === "WORKSHOP_UPDATED" ? "warning" : "error"}>{relativeTime(item.createdAt)}</Badge></div><p className="mt-1 text-sm text-text-muted">{item.message}</p><Link className="mt-3 inline-flex text-sm font-semibold text-blue-300" href={`/workshops/${item.workshopId}`} onClick={() => void markRead(item.id)}>Open workshop</Link></div></div></Card>)}</div> : <p className="mt-8 rounded-lg border border-dashed border-border-strong p-10 text-center text-sm text-text-muted">No updates yet. You&apos;ll see enrollment decisions and workshop changes here.</p>}</div></main>;
+}
