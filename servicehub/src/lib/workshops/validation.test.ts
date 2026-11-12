@@ -10,6 +10,20 @@ describe("workshop validation", () => {
     expect(durationMinutes(start, end)).toBe(100);
   });
 
+  it("accepts short descriptions and any non-negative duration", () => {
+    const start = new Date(Date.now() + 86_400_000).toISOString();
+    const end = new Date(Date.now() + 86_400_000 + 60_000).toISOString();
+    expect(workshopSchema.safeParse({ title: "A", description: "B", category: "C", location: "X", startAt: start, endAt: end, capacity: 1 }).success).toBe(true);
+  });
+
+  it("rejects an end date before the start date", () => {
+    const start = new Date(Date.now() + 86_400_000).toISOString();
+    const end = new Date(Date.now() + 3_600_000).toISOString();
+    const result = workshopSchema.safeParse({ title: "Workshop", description: "Details", category: "General", location: "Room", startAt: start, endAt: end, capacity: 1 });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.flatten().fieldErrors.endAt).toContain("End date must be on or after the start date.");
+  });
+
   it("rejects invalid capacity and participation notes", () => {
     expect(workshopSchema.safeParse({ title: "A", description: "Short", category: "Home", location: "Hall", startAt: new Date().toISOString(), endAt: new Date().toISOString(), capacity: 0 }).success).toBe(false);
     expect(participationSchema.safeParse({ note: "x".repeat(501) }).success).toBe(false);
