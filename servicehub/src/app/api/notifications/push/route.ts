@@ -4,15 +4,19 @@ import { apiUser, isApiError } from "@/lib/auth/api-guards";
 import { getVapidPublicKey, pushSubscriptionsCollection, removePushSubscription, savePushSubscription } from "@/lib/notifications/push";
 import { isAllowedPushEndpoint } from "@/lib/notifications/push-endpoint";
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await apiUser();
   if (isApiError(user)) return user;
   const publicKey = getVapidPublicKey();
   if (!publicKey) {
     return NextResponse.json({ error: "Browser notifications are not configured on this server yet." }, { status: 503 });
   }
+  const endpoint = new URL(request.url).searchParams.get("endpoint");
+  if (endpoint && !isAllowedPushEndpoint(endpoint)) {
+    return NextResponse.json({ error: "A valid browser push endpoint is required." }, { status: 400 });
+  }
   const subscription = await (await pushSubscriptionsCollection()).findOne(
-    { recipientId: new ObjectId(user.id) },
+    { recipientId: new ObjectId(user.id), ...(endpoint ? { endpoint } : {}) },
     { projection: { _id: 1 } },
   );
   return NextResponse.json({ publicKey, subscribed: Boolean(subscription) }, { headers: { "Cache-Control": "no-store" } });

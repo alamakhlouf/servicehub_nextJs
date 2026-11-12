@@ -107,10 +107,17 @@ export function ListingForm({ listing }: { listing?: SafeSupplierListing }) {
         setErrors(Object.fromEntries(Object.entries(data.fieldErrors ?? {}).map(([key, messages]) => [key, messages[0] ?? ""])));
         return;
       }
-      if (!listing) await deleteSupplierListingDraft(draftId);
+      if (!listing) {
+        try {
+          await deleteSupplierListingDraft(draftId);
+        } catch (draftError) {
+          console.error("Listing was created, but its local draft could not be removed:", draftError);
+        }
+      }
       router.replace("/dashboard/my-listings");
       router.refresh();
-    } catch {
+    } catch (requestError) {
+      console.error("Unable to submit supplier listing:", requestError);
       setError("We couldn't reach ServiceHub. Your draft is still saved.");
     } finally {
       setLoading(false);

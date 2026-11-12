@@ -3,15 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge, Button, Card } from "@/components/ui";
+import { disableBrowserNotifications, enableBrowserNotifications, getBrowserPushConfiguration } from "@/lib/notifications/browser-push";
 import type { SafeNotification } from "@/lib/notifications/notifications";
 
 type PushConfiguration = { publicKey: string; subscribed: boolean };
-
-function decodeApplicationServerKey(value: string) {
-  const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
-  const decoded = atob(padded);
-  return Uint8Array.from(decoded, (character) => character.charCodeAt(0));
-}
 
 export function NotificationList({ initialNotifications }: { initialNotifications: SafeNotification[] }) {
   const [notifications, setNotifications] = useState(initialNotifications);
@@ -24,10 +19,8 @@ export function NotificationList({ initialNotifications }: { initialNotification
   useEffect(() => {
     let active = true;
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
-    void fetch("/api/notifications/push", { cache: "no-store" })
-      .then(async (response) => {
-        const data = await response.json() as PushConfiguration & { error?: string };
-        if (!response.ok) throw new Error(data.error ?? "Unable to load browser notification settings.");
+    void getBrowserPushConfiguration()
+      .then((data) => {
         if (active) setPushConfiguration(data);
       })
       .catch((reason: unknown) => {
@@ -43,51 +36,15 @@ export function NotificationList({ initialNotifications }: { initialNotification
     setPushMessage("");
     try {
       if (!pushConfiguration) throw new Error("Browser notifications are not configured on this server yet.");
-      const registration = await navigator.serviceWorker.ready;
-      let subscription = await registration.pushManager.getSubscription();
 
-      if (pushConfiguration.subscribed && subscription) {
-        const response = await fetch("/api/notifications/push", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
-        });
-        const data = await response.json() as { error?: string };
-        if (!response.ok) throw new Error(data.error ?? "Unable to turn off browser notifications.");
-        await subscription.unsubscribe();
+      if (pushConfiguration.subscribed) {
+        await disableBrowserNotifications();
         setPushConfiguration({ ...pushConfiguration, subscribed: false });
         setPushMessage("Desktop notifications are turned off.");
         return;
       }
 
-      if (Notification.permission !== "granted") {
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          throw new Error(permission === "denied"
-            ? "Notifications are blocked for this site. Allow them in your browser's site settings."
-            : "Notification permission was not granted.");
-        }
-      }
-
-      if (subscription) {
-        const currentKey = subscription.options.applicationServerKey;
-        if (currentKey && Array.from(new Uint8Array(currentKey)).join(",") !==
-          Array.from(decodeApplicationServerKey(pushConfiguration.publicKey)).join(",")) {
-          await subscription.unsubscribe();
-          subscription = null;
-        }
-      }
-      subscription ??= await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: decodeApplicationServerKey(pushConfiguration.publicKey),
-      });
-      const response = await fetch("/api/notifications/push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(subscription.toJSON()),
-      });
-      const data = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(data.error ?? "Unable to enable browser notifications.");
+      await enableBrowserNotifications(pushConfiguration.publicKey);
       setPushConfiguration({ ...pushConfiguration, subscribed: true });
       setPushMessage("Desktop notifications are enabled for bookings, supplier orders, and workshop signups.");
     } catch (reason) {

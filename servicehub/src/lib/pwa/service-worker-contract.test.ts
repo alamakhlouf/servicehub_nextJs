@@ -4,6 +4,12 @@ import { describe, expect, it } from "vitest";
 
 const serviceWorker = readFileSync(resolve(process.cwd(), "public", "sw.js"), "utf8");
 const offlineShell = readFileSync(resolve(process.cwd(), "public", "offline.html"), "utf8");
+const bookingQueue = readFileSync(resolve(process.cwd(), "src", "lib", "pwa", "booking-queue.ts"), "utf8");
+const supplierDrafts = readFileSync(resolve(process.cwd(), "src", "lib", "pwa", "supplier-drafts.ts"), "utf8");
+const supplierListingForm = readFileSync(resolve(process.cwd(), "src", "components", "suppliers", "listing-form.tsx"), "utf8");
+const appLayout = readFileSync(resolve(process.cwd(), "src", "app", "layout.tsx"), "utf8");
+const notificationPrompt = readFileSync(resolve(process.cwd(), "src", "components", "notifications", "notification-setup-prompt.tsx"), "utf8");
+const browserPush = readFileSync(resolve(process.cwd(), "src", "lib", "notifications", "browser-push.ts"), "utf8");
 const webManifest = JSON.parse(readFileSync(resolve(process.cwd(), "public", "manifest.webmanifest"), "utf8")) as {
   name: string;
   short_name: string;
@@ -71,11 +77,30 @@ describe("ServiceHub service-worker cache contract", () => {
     expect(serviceWorker).toContain('type: "BOOKING_SYNCED"');
   });
 
+  it("uses a shared IndexedDB version for bookings and supplier listing drafts", () => {
+    expect(bookingQueue).toContain('const version = 3;');
+    expect(supplierDrafts).toContain('const version = 3;');
+    expect(serviceWorker).toContain('indexedDB.open("servicehub-pwa", 3)');
+    expect(bookingQueue).toContain('createObjectStore("supplier-listing-drafts"');
+    expect(supplierDrafts).toContain('createObjectStore("booking-request-queue"');
+    expect(supplierListingForm).toContain("Listing was created, but its local draft could not be removed:");
+  });
+
   it("displays Web Push messages as desktop notifications and opens their destination", () => {
     expect(serviceWorker).toContain('self.addEventListener("push"');
     expect(serviceWorker).toContain("self.registration.showNotification(title");
     expect(serviceWorker).toContain('self.addEventListener("notificationclick"');
     expect(serviceWorker).toContain("self.clients.openWindow(destination.href)");
+  });
+
+  it("prompts signed-in users to enable browser notifications on app entry", () => {
+    expect(appLayout).toContain("{user ? <NotificationSetupPrompt key={user.id} userId={user.id} /> : null}");
+    expect(notificationPrompt).toContain("getBrowserPushConfiguration()");
+    expect(notificationPrompt).toContain("enableBrowserNotifications(prompt.publicKey)");
+    expect(notificationPrompt).toContain("servicehub_notification_prompt_dismissed:");
+    expect(notificationPrompt).toContain("servicehub:push-subscription-changed");
+    expect(browserPush).toContain("Notification.requestPermission()");
+    expect(browserPush).toContain('window.dispatchEvent(new Event("servicehub:push-subscription-changed"))');
   });
 
   it("pre-caches an offline navigation fallback without caching private page responses", () => {

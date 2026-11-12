@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/layout/service-worker-registration";
 import { Navigation } from "@/components/layout/navigation";
+import { NotificationSetupPrompt } from "@/components/notifications/notification-setup-prompt";
 import { getCurrentUser } from "@/lib/auth/users";
 import "./globals.css";
 
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full overflow-x-hidden bg-background font-sans text-text">
         <ServiceWorkerRegistration />
         <Navigation user={user} />
+        {user ? <NotificationSetupPrompt key={user.id} userId={user.id} /> : null}
         <main className="min-w-0 lg:ml-64">{children}</main>
       </body>
     </html>

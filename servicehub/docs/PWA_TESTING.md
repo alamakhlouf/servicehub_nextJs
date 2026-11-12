@@ -68,7 +68,10 @@ The worker does not cache authenticated booking/order/report/review APIs or priv
 - As a customer, book a provider's service. Sign in as that provider and confirm a new unread notification appears in navigation and **Notifications**, linking to booking requests.
 - Place an order for a supplier listing. Sign in as that supplier and confirm the order notification links to supplier orders.
 - As a provider, request to join another organizer's workshop. Sign in as the organizer and confirm the signup notification links to participants.
-- In **Notifications**, choose **Enable** under **Desktop notifications** and allow the browser permission prompt. Create one of the events above from another account and confirm a system notification appears. Test with the ServiceHub tab closed, then click the notification and confirm it opens the related page.
+- Sign in as the notification recipient on a device/browser without an active push subscription. The app should show a **Turn on notifications?** prompt. Choose **Enable** and allow the browser permission prompt; browser permission must be requested after this click.
+- Choose **Not now** and confirm the prompt stays dismissed for the current browser session. Start a new session and confirm it can ask again. If permission was blocked, allow it in browser/device site settings.
+- Create one of the events above from another account and confirm a system notification appears. Test with the ServiceHub tab closed, then click the notification and confirm it opens the related page.
+- The **Notifications** page also has a browser-notification toggle for enabling or disabling this device later.
 - Choose **Turn off** and confirm later events no longer display on that device. Logging out also removes the current device's push subscription.
 
 ### Web Push server setup

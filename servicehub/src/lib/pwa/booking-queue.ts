@@ -6,15 +6,23 @@ export type QueuedBooking = {
 
 const databaseName = "servicehub-pwa";
 const storeName = "booking-request-queue";
-const version = 2;
+const version = 3;
 
 function openDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(databaseName, version);
     request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(storeName)) request.result.createObjectStore(storeName, { keyPath: "clientRequestId" });
+      if (!request.result.objectStoreNames.contains(storeName)) {
+        request.result.createObjectStore(storeName, { keyPath: "clientRequestId" });
+      }
+      if (!request.result.objectStoreNames.contains("supplier-listing-drafts")) {
+        request.result.createObjectStore("supplier-listing-drafts", { keyPath: "id" });
+      }
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      request.result.onversionchange = () => request.result.close();
+      resolve(request.result);
+    };
     request.onerror = () => reject(request.error ?? new Error("Unable to open booking queue"));
   });
 }

@@ -103,8 +103,19 @@ async function profileNetworkFirst(request, userId) {
 
 function openBookingDatabase() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("servicehub-pwa", 2);
-    request.onsuccess = () => resolve(request.result);
+    const request = indexedDB.open("servicehub-pwa", 3);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("booking-request-queue")) {
+        request.result.createObjectStore("booking-request-queue", { keyPath: "clientRequestId" });
+      }
+      if (!request.result.objectStoreNames.contains("supplier-listing-drafts")) {
+        request.result.createObjectStore("supplier-listing-drafts", { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => {
+      request.result.onversionchange = () => request.result.close();
+      resolve(request.result);
+    };
     request.onerror = () => reject(request.error || new Error("Unable to open booking queue"));
   });
 }
