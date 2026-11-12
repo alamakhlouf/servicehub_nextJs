@@ -92,7 +92,15 @@ export function WorkshopForm({ initial }: { initial?: SafeWorkshop }) {
 export function WorkshopManager({ initial, canCreate }: { initial: SafeWorkshop[]; canCreate: boolean }) {
   const [workshops, setWorkshops] = useState(initial); const [error, setError] = useState("");
   async function close(workshop: SafeWorkshop) { if (!window.confirm(`Cancel ${workshop.title}?`)) return; const response = await fetch(`/api/workshops/${workshop.id}`, { method: "DELETE" }); if (!response.ok) { setError("Unable to cancel this workshop."); return; } setWorkshops((items) => items.map((item) => item.id === workshop.id ? { ...item, status: "CANCELLED" } : item)); }
-  async function complete(workshop: SafeWorkshop) { const response = await fetch(`/api/workshops/${workshop.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "COMPLETED" }) }); if (!response.ok) { setError("A workshop can only be completed after it has been published."); return; } setWorkshops((items) => items.map((item) => item.id === workshop.id ? { ...item, status: "COMPLETED" } : item)); }
+  async function complete(workshop: SafeWorkshop) {
+    try {
+      const response = await fetch(`/api/workshops/${workshop.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "COMPLETED" }) });
+      const data = await response.json().catch(() => null) as { error?: string } | null;
+      if (!response.ok) { setError(data?.error ?? "Unable to complete this workshop."); return; }
+      setError("");
+      setWorkshops((items) => items.map((item) => item.id === workshop.id ? { ...item, status: "COMPLETED" } : item));
+    } catch { setError("Unable to complete this workshop. Check your connection and try again."); }
+  }
   return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-wide text-blue-300">Organizer workspace</p><h1 className="mt-2 font-display text-3xl font-bold">My workshops</h1></div>{canCreate ? <Link href="/dashboard/my-workshops/new"><Button>Create workshop</Button></Link> : null}</div>{error ? <p className="mt-5 text-sm text-red-200" role="alert">{error}</p> : null}<div className="mt-8 grid gap-4 md:grid-cols-2">{workshops.length ? workshops.map((workshop) => <Card className="p-5" key={workshop.id}>{workshopCard(workshop)}<div className="mt-4 flex flex-wrap gap-2">{workshop.status === "PUBLISHED" ? <Button onClick={() => void complete(workshop)} size="sm" type="button" variant="secondary">Mark completed</Button> : null}{workshop.status !== "CANCELLED" && workshop.status !== "COMPLETED" ? <Button onClick={() => void close(workshop)} size="sm" type="button" variant="danger">Cancel</Button> : null}<Link href={`/dashboard/my-workshops/${workshop.id}/participants`}><Button size="sm" type="button" variant="outline">Enrollments</Button></Link><Link href={`/dashboard/my-workshops/${workshop.id}/edit`}><Button size="sm" type="button" variant="ghost">Edit</Button></Link></div></Card>) : <p className="rounded-lg border border-dashed border-border-strong p-10 text-center text-sm text-text-muted">No workshops found.</p>}</div></div>;
 }
 

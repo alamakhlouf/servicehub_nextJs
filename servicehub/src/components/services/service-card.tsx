@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { Badge, Card } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import type { SafeService } from "@/types/service";
 
-export function ServiceCard({ service, manage = false }: { service: SafeService; manage?: boolean }) {
+export function ServiceCard({ service, manage = false, className }: { service: SafeService; manage?: boolean; className?: string }) {
   return (
-    <Card className="flex h-full flex-col p-5">
+    <Card className={cn("flex min-w-0 flex-col p-5", className)}>
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-300">{service.category}</p>
-          <h2 className="mt-2 font-display text-lg font-bold">{service.title}</h2>
+          <h2 className="mt-2 break-words font-display text-lg font-bold">{service.title}</h2>
         </div>
-        <Badge tone={service.status === "PUBLISHED" ? "success" : service.status === "ARCHIVED" ? "neutral" : "warning"}>{service.status}</Badge>
+        <Badge className="shrink-0" tone={service.status === "PUBLISHED" ? "success" : service.status === "ARCHIVED" ? "neutral" : "warning"}>{service.status}</Badge>
       </div>
       <p className="mt-3 line-clamp-3 text-sm leading-6 text-text-muted">{service.description}</p>
       <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm text-text-subtle">

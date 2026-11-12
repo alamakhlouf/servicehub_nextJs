@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canTransition } from "./workshops";
+import { canTransition, workshopDate } from "./workshops";
 import { durationMinutes, participationSchema, workshopSchema } from "./validation";
 
 describe("workshop validation", () => {
@@ -30,5 +30,11 @@ describe("workshop lifecycle", () => {
     expect(canTransition("PUBLISHED", "COMPLETED")).toBe(true);
     expect(canTransition("COMPLETED", "PUBLISHED")).toBe(false);
     expect(canTransition("CANCELLED", "COMPLETED")).toBe(false);
+  });
+
+  it("normalizes valid legacy date strings and rejects invalid dates", () => {
+    const legacyDate = new Date("2026-11-12T20:00:00.000Z");
+    expect(workshopDate(legacyDate.toISOString())?.toISOString()).toBe(legacyDate.toISOString());
+    expect(workshopDate("not-a-date")).toBeNull();
   });
 });

@@ -4,9 +4,9 @@ import type { SafeWorkshop, SkillLevel, WorkshopFormat, WorkshopStatus } from "@
 
 export type WorkshopDocument = {
   _id: ObjectId; organizerId: ObjectId; title: string; description: string; category: string;
-  location: string; startAt: Date; durationMinutes: number; capacity: number; approvedParticipantCount: number;
+  location: string; startAt: Date | string; durationMinutes: number; capacity: number; approvedParticipantCount: number;
   imageUrl?: string; skillLevel?: SkillLevel; learningPoints?: string[]; requirements?: string[];
-  format?: WorkshopFormat; meetingUrl?: string; status: WorkshopStatus; createdAt: Date; updatedAt: Date;
+  format?: WorkshopFormat; meetingUrl?: string; status: WorkshopStatus; createdAt: Date | string; updatedAt: Date | string;
 };
 
 export async function workshopsCollection() {
@@ -19,8 +19,17 @@ export async function workshopsCollection() {
   return collection;
 }
 
+export function workshopDate(value: Date | string) {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export function toSafeWorkshop(workshop: WorkshopDocument, organizerName?: string, approvedParticipantCount = workshop.approvedParticipantCount ?? 0, includePrivate = false): SafeWorkshop {
-  return { id: workshop._id.toString(), organizerId: workshop.organizerId.toString(), ...(organizerName ? { organizerName } : {}), title: workshop.title, description: workshop.description, category: workshop.category, location: workshop.location, startAt: workshop.startAt.toISOString(), durationMinutes: workshop.durationMinutes, capacity: workshop.capacity, approvedParticipantCount, ...(workshop.imageUrl ? { imageUrl: workshop.imageUrl } : {}), skillLevel: workshop.skillLevel ?? "ALL_LEVELS", learningPoints: workshop.learningPoints ?? [], requirements: workshop.requirements ?? [], format: workshop.format ?? "IN_PERSON", ...(includePrivate && workshop.meetingUrl ? { meetingUrl: workshop.meetingUrl } : {}), status: workshop.status, createdAt: workshop.createdAt.toISOString(), updatedAt: workshop.updatedAt.toISOString() };
+  const startAt = workshopDate(workshop.startAt);
+  const createdAt = workshopDate(workshop.createdAt);
+  const updatedAt = workshopDate(workshop.updatedAt);
+  if (!startAt || !createdAt || !updatedAt) throw new Error("Workshop contains invalid date data.");
+  return { id: workshop._id.toString(), organizerId: workshop.organizerId.toString(), ...(organizerName ? { organizerName } : {}), title: workshop.title, description: workshop.description, category: workshop.category, location: workshop.location, startAt: startAt.toISOString(), durationMinutes: workshop.durationMinutes, capacity: workshop.capacity, approvedParticipantCount, ...(workshop.imageUrl ? { imageUrl: workshop.imageUrl } : {}), skillLevel: workshop.skillLevel ?? "ALL_LEVELS", learningPoints: workshop.learningPoints ?? [], requirements: workshop.requirements ?? [], format: workshop.format ?? "IN_PERSON", ...(includePrivate && workshop.meetingUrl ? { meetingUrl: workshop.meetingUrl } : {}), status: workshop.status, createdAt: createdAt.toISOString(), updatedAt: updatedAt.toISOString() };
 }
 
 export function canTransition(from: WorkshopStatus, to: WorkshopStatus) {

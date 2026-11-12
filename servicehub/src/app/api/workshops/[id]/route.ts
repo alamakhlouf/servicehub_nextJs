@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { apiUser, isApiError } from "@/lib/auth/api-guards";
 import { findUserById } from "@/lib/auth/users";
 import { durationMinutes, workshopSchema } from "@/lib/workshops/validation";
-import { canTransition, toSafeWorkshop, workshopsCollection } from "@/lib/workshops/workshops";
+import { canTransition, toSafeWorkshop, workshopDate, workshopsCollection } from "@/lib/workshops/workshops";
 import { participantsCollection } from "@/lib/workshops/participants";
 import { createWorkshopNotification } from "@/lib/workshops/notifications";
 
@@ -31,6 +31,8 @@ export async function PATCH(request: Request, context: Context) {
   const collection = await workshopsCollection();
   const record = await collection.findOne({ _id: new ObjectId(id), ...(user.role === "ADMIN" ? {} : { organizerId: new ObjectId(user.id) }) });
   if (!record) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
+  const recordStartAt = workshopDate(record.startAt);
+  if (!recordStartAt) return NextResponse.json({ error: "This workshop has invalid date data and cannot be updated." }, { status: 500 });
   const body = await request.json().catch(() => null);
   const statusOnly = body && typeof body === "object" && Object.keys(body).length === 1 && "status" in body;
   if (statusOnly) {
@@ -38,9 +40,9 @@ export async function PATCH(request: Request, context: Context) {
     if (!statusParsed.success) return NextResponse.json({ error: "Check the workshop status." }, { status: 400 });
     const status = statusParsed.data.status;
     if (!status || !canTransition(record.status, status)) return NextResponse.json({ error: `A ${record.status.toLowerCase()} workshop cannot become ${String(status).toLowerCase()}.` }, { status: 400 });
-    if (status === "PUBLISHED" && record.startAt <= new Date()) return NextResponse.json({ error: "A workshop must start in the future." }, { status: 400 });
+    if (status === "PUBLISHED" && recordStartAt <= new Date()) return NextResponse.json({ error: "A workshop must start in the future." }, { status: 400 });
     if (status === "PUBLISHED" && (record.format ?? "IN_PERSON") === "ONLINE" && !record.meetingUrl) return NextResponse.json({ error: "A meeting link is required to publish an online workshop." }, { status: 400 });
-    if (status === "COMPLETED" && record.startAt > new Date()) return NextResponse.json({ error: "A workshop can only be completed after it starts." }, { status: 400 });
+    if (status === "COMPLETED" && recordStartAt > new Date()) return NextResponse.json({ error: "A workshop can only be completed after it starts." }, { status: 400 });
     await collection.updateOne({ _id: record._id }, { $set: { status, updatedAt: new Date(), ...(status === "CANCELLED" ? { approvedParticipantCount: 0 } : {}) } });
     if (status === "CANCELLED") {
       const participants = await (await participantsCollection()).find({ workshopId: record._id, status: { $in: ["PENDING", "APPROVED"] } }).toArray();
@@ -59,7 +61,7 @@ export async function PATCH(request: Request, context: Context) {
   if (parsed.data.capacity < record.approvedParticipantCount) return NextResponse.json({ error: "Capacity cannot be lower than approved participants." }, { status: 400 });
   if (parsed.data.status && !canTransition(record.status, parsed.data.status)) return NextResponse.json({ error: `A ${record.status.toLowerCase()} workshop cannot become ${parsed.data.status.toLowerCase()}.` }, { status: 400 });
   const changedFields = [
-    parsed.data.startAt !== record.startAt.toISOString() ? "date" : null,
+    parsed.data.startAt !== recordStartAt.toISOString() ? "date" : null,
     parsed.data.location !== record.location ? "location" : null,
     parsed.data.format !== (record.format ?? "IN_PERSON") ? "format" : null,
     parsed.data.meetingUrl !== record.meetingUrl ? "meetingLink" : null,
