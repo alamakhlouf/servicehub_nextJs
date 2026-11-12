@@ -95,6 +95,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           <Button className="mt-2 w-full" loading={loading} size="lg" type="submit">{isSignup ? "Create account" : "Sign in"}</Button>
         </form>
 
+        {!isSignup ? <p className="mt-4 text-center text-sm"><Link className="font-semibold text-blue-300 underline" href="/forgot-password">Forgot your password?</Link></p> : null}
         <p className="mt-6 text-center text-sm text-text-muted">
           {isSignup ? "Already have an account?" : "New to ServiceHub?"}{" "}
           <Link className="font-semibold text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200" href={alternateHref}>
