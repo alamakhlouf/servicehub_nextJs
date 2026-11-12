@@ -31,8 +31,6 @@ export async function PATCH(request: Request, context: Context) {
   const collection = await workshopsCollection();
   const record = await collection.findOne({ _id: new ObjectId(id), ...(user.role === "ADMIN" ? {} : { organizerId: new ObjectId(user.id) }) });
   if (!record) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
-  const recordStartAt = workshopDate(record.startAt);
-  if (!recordStartAt) return NextResponse.json({ error: "This workshop has invalid date data and cannot be updated." }, { status: 500 });
   const body = await request.json().catch(() => null);
   const statusOnly = body && typeof body === "object" && Object.keys(body).length === 1 && "status" in body;
   if (statusOnly) {
@@ -40,9 +38,9 @@ export async function PATCH(request: Request, context: Context) {
     if (!statusParsed.success) return NextResponse.json({ error: "Check the workshop status." }, { status: 400 });
     const status = statusParsed.data.status;
     if (!status || !canTransition(record.status, status)) return NextResponse.json({ error: `A ${record.status.toLowerCase()} workshop cannot become ${String(status).toLowerCase()}.` }, { status: 400 });
-    if (status === "PUBLISHED" && recordStartAt <= new Date()) return NextResponse.json({ error: "A workshop must start in the future." }, { status: 400 });
     if (status === "PUBLISHED" && (record.format ?? "IN_PERSON") === "ONLINE" && !record.meetingUrl) return NextResponse.json({ error: "A meeting link is required to publish an online workshop." }, { status: 400 });
-    if (status === "COMPLETED" && recordStartAt > new Date()) return NextResponse.json({ error: "A workshop can only be completed after it starts." }, { status: 400 });
+    const completionStartAt = workshopDate(record.startAt);
+    if (status === "COMPLETED" && completionStartAt && completionStartAt > new Date()) return NextResponse.json({ error: "A workshop can only be completed after it starts." }, { status: 400 });
     await collection.updateOne({ _id: record._id }, { $set: { status, updatedAt: new Date(), ...(status === "CANCELLED" ? { approvedParticipantCount: 0 } : {}) } });
     if (status === "CANCELLED") {
       const participants = await (await participantsCollection()).find({ workshopId: record._id, status: { $in: ["PENDING", "APPROVED"] } }).toArray();
@@ -50,14 +48,16 @@ export async function PATCH(request: Request, context: Context) {
       await Promise.all(participants.map((participant) => createWorkshopNotification({ userId: participant.customerId, workshopId: record._id, participantId: participant._id, type: "WORKSHOP_CANCELLED", title: "Workshop cancelled", message: `The workshop "${record.title}" was cancelled.` })));
     }
     const updatedStatus = await collection.findOne({ _id: record._id });
-    return NextResponse.json({ workshop: toSafeWorkshop(updatedStatus!, user.name) });
+    if (!updatedStatus) return NextResponse.json({ error: "Workshop was not updated." }, { status: 404 });
+    return NextResponse.json({ workshop: toSafeWorkshop(updatedStatus, user.name) });
   }
   if (record.status === "COMPLETED" || record.status === "CANCELLED") return NextResponse.json({ error: "Completed and cancelled workshops are terminal." }, { status: 400 });
+  const recordStartAt = workshopDate(record.startAt);
+  if (!recordStartAt) return NextResponse.json({ error: "This workshop has invalid date data and cannot be updated." }, { status: 400 });
   const parsed = workshopSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Check the highlighted fields.", fieldErrors: parsed.error.flatten().fieldErrors }, { status: 400 });
   const startAt = new Date(parsed.data.startAt);
   const duration = durationMinutes(parsed.data.startAt, parsed.data.endAt);
-  if (duration < 15 || duration > 1440 || startAt <= new Date()) return NextResponse.json({ error: "Choose a future start time and a duration between 15 minutes and 24 hours." }, { status: 400 });
   if (parsed.data.capacity < record.approvedParticipantCount) return NextResponse.json({ error: "Capacity cannot be lower than approved participants." }, { status: 400 });
   if (parsed.data.status && !canTransition(record.status, parsed.data.status)) return NextResponse.json({ error: `A ${record.status.toLowerCase()} workshop cannot become ${parsed.data.status.toLowerCase()}.` }, { status: 400 });
   const changedFields = [
@@ -88,8 +88,7 @@ export async function DELETE(request: Request, context: Context) {
   const collection = await workshopsCollection();
   const record = await collection.findOne({ _id: new ObjectId(id), ...(user.role === "ADMIN" ? {} : { organizerId: new ObjectId(user.id) }) });
   if (!record) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
-  if (record.status === "COMPLETED" || record.status === "CANCELLED") return NextResponse.json({ error: "This workshop is already closed." }, { status: 400 });
-  await collection.updateOne({ _id: record._id }, { $set: { status: "CANCELLED", approvedParticipantCount: 0, updatedAt: new Date() } });
-  await (await participantsCollection()).updateMany({ workshopId: record._id, status: { $in: ["PENDING", "APPROVED"] } }, { $set: { status: "CANCELLED", updatedAt: new Date() } });
-  return NextResponse.json({ cancelled: true });
+  await collection.deleteOne({ _id: record._id });
+  await (await participantsCollection()).deleteMany({ workshopId: record._id });
+  return NextResponse.json({ deleted: true });
 }
