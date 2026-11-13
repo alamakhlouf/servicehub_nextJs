@@ -27,7 +27,6 @@ const publicLinks: NavLink[] = [
 ];
 
 const accountLinks: NavLink[] = [
-  { href: "/dashboard/profile", label: "Profile" },
   { href: "/dashboard/notifications", label: "Notifications" },
   { href: "/dashboard/bookings", label: "Bookings", roles: ["CUSTOMER", "PROVIDER"] },
   { href: "/dashboard/my-orders", label: "My orders", roles: ["CUSTOMER"] },

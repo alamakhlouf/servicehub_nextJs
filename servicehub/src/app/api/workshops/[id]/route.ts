@@ -29,7 +29,7 @@ export async function PATCH(request: Request, context: Context) {
   if (isApiError(user)) return user;
   if (!ObjectId.isValid(id)) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
   const collection = await workshopsCollection();
-  const record = await collection.findOne({ _id: new ObjectId(id), ...(user.role === "ADMIN" ? {} : { organizerId: new ObjectId(user.id) }) });
+  const record = await collection.findOne({ _id: new ObjectId(id), organizerId: new ObjectId(user.id) });
   if (!record) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
   const body = await request.json().catch(() => null);
   const statusOnly = body && typeof body === "object" && Object.keys(body).length === 1 && "status" in body;
@@ -86,7 +86,7 @@ export async function DELETE(request: Request, context: Context) {
   if (isApiError(user)) return user;
   if (!ObjectId.isValid(id)) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
   const collection = await workshopsCollection();
-  const record = await collection.findOne({ _id: new ObjectId(id), ...(user.role === "ADMIN" ? {} : { organizerId: new ObjectId(user.id) }) });
+  const record = await collection.findOne({ _id: new ObjectId(id), organizerId: new ObjectId(user.id) });
   if (!record) return NextResponse.json({ error: "Workshop not found." }, { status: 404 });
   await collection.deleteOne({ _id: record._id });
   await (await participantsCollection()).deleteMany({ workshopId: record._id });
