@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, Loading } from "@/components/ui";
 import type { SafeReport } from "@/types/report";
 
 export function ModerationList() {
   const [reports, setReports] = useState<SafeReport[]>([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void fetch("/api/admin/reports")
@@ -15,7 +16,8 @@ export function ModerationList() {
         if (!data.reports) setError(data.error ?? "We couldn't load reports.");
         else setReports(data.reports);
       })
-      .catch(() => setError("We couldn't load reports."));
+      .catch(() => setError("We couldn't load reports."))
+      .finally(() => setLoading(false));
   }, []);
 
   async function moderate(report: SafeReport, payload: { status?: "UNDER_REVIEW" | "RESOLVED" | "DISMISSED"; action?: "BLOCK_USER" | "DELETE_TARGET" }) {
@@ -36,7 +38,7 @@ export function ModerationList() {
   return <div className="mx-auto w-full max-w-5xl">
     <div className="mb-8"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-300">Moderator workspace</p><h1 className="mt-2 font-display text-3xl font-bold">Reports</h1><p className="mt-2 text-text-muted">Review reports and record a clear moderation decision.</p></div>
     {error ? <p className="mb-5 rounded-md border border-error/50 bg-error/10 px-3 py-2 text-sm text-red-100" role="alert">{error}</p> : null}
-    {reports.length ? <div className="grid gap-4">{reports.map((report) => <Card className="p-5" key={report.id}>
+    {loading ? <Card className="p-10"><Loading label="Loading reports…" /></Card> : reports.length ? <div className="grid gap-4">{reports.map((report) => <Card className="p-5" key={report.id}>
       <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-display text-lg font-bold">{report.targetLabel ?? report.targetType.replace("_", " ")}</h2><p className="mt-1 text-sm text-text-muted">{report.reason} · reported {new Date(report.createdAt).toLocaleDateString()}</p></div><Badge tone="warning">{report.status.replace("_", " ")}</Badge></div>
       {report.targetDetails ? <div className="mt-4 grid gap-1 rounded-md bg-surface-elevated p-3 text-sm text-text-muted"><p>{report.targetDetails.description}</p>{report.targetDetails.category ? <p>Category: {report.targetDetails.category}</p> : null}{report.targetDetails.city ? <p>Location: {report.targetDetails.city}</p> : null}{report.targetDetails.price !== undefined ? <p>Price: {report.targetDetails.price} ({report.targetDetails.priceUnit})</p> : null}{report.targetDetails.unitPrice !== undefined ? <p>Price: {report.targetDetails.unitPrice} / {report.targetDetails.unitLabel}</p> : null}{report.targetDetails.stock !== undefined ? <p>Stock: {report.targetDetails.stock}</p> : null}{report.targetDetails.email ? <p>Email: {report.targetDetails.email}</p> : null}</div> : null}
       {report.note ? <p className="mt-4 rounded-md bg-surface-elevated p-3 text-sm text-text-muted">{report.note}</p> : null}

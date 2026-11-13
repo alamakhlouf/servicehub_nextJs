@@ -80,7 +80,7 @@ export function NotificationList({ initialNotifications }: { initialNotification
   }
 
   return (
-    <div className="w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-300">Your account</p>
