@@ -9,7 +9,7 @@ export async function GET() {
   const reports = await (await reportsCollection()).find({ reporterId: new ObjectId(user.id) }).sort({ createdAt: -1 }).toArray();
   const result = await Promise.all(reports.map(async (report) => {
     const target = await findReportTarget(report.targetType, report.targetId.toString());
-    return toSafeReport(report, target?.label, true);
+    return { ...toSafeReport(report, target?.label, true), ...(target?.details ? { targetDetails: target.details } : {}) };
   }));
   return NextResponse.json({ reports: result });
 }

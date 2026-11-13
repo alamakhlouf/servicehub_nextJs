@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/db/database";
 import type { Role, SafeUser } from "@/types/auth";
-export type UserDocument = { _id: ObjectId; name: string; email: string; passwordHash: string; role: Role; phone?: string; city?: string; bio?: string; createdAt: Date; updatedAt: Date };
+export type UserDocument = { _id: ObjectId; name: string; email: string; passwordHash: string; role: Role; phone?: string; city?: string; bio?: string; blockedAt?: Date; createdAt: Date; updatedAt: Date };
 export function toSafeUser(user: UserDocument): SafeUser {
   return { id: user._id.toString(), name: user.name, email: user.email, role: user.role, ...(user.phone ? { phone: user.phone } : {}), ...(user.city ? { city: user.city } : {}), ...(user.bio ? { bio: user.bio } : {}) };
 }
@@ -13,5 +13,5 @@ export async function getCurrentUser() {
   const session = await getSession();
   if (!session) return null;
   const user = await findUserById(session.userId);
-  return user ? toSafeUser(user) : null;
+  return user && !user.blockedAt ? toSafeUser(user) : null;
 }

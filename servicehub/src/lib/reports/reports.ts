@@ -38,12 +38,16 @@ export async function findReportTarget(type: ReportTargetType, id: string) {
   const objectId = new ObjectId(id);
   const database = await getDatabase();
   if (type === "SERVICE") {
-    const target = await database.collection<{ _id: ObjectId; title: string }>("services").findOne({ _id: objectId });
-    return target ? { label: target.title } : null;
+    const target = await database.collection<{ _id: ObjectId; title: string; description: string; category: string; price: number; priceUnit: string; city: string; status: string }>("services").findOne({ _id: objectId });
+    return target ? { label: target.title, details: { kind: "SERVICE" as const, description: target.description, category: target.category, price: target.price, priceUnit: target.priceUnit, city: target.city } } : null;
   }
   if (type === "SUPPLIER_LISTING") {
     const target = await (await listingsCollection()).findOne({ _id: objectId });
-    return target ? { label: target.name } : null;
+    return target ? { label: target.name, details: { kind: "SUPPLIER_LISTING" as const, description: target.description, category: target.category, unitPrice: target.unitPrice, unitLabel: target.unitLabel, stock: target.stock, available: target.available } } : null;
+  }
+  if (type === "USER") {
+    const target = await database.collection<{ _id: ObjectId; name: string; email: string; role: string; blockedAt?: Date }>("users").findOne({ _id: objectId });
+    return target ? { label: target.name, details: { kind: "USER" as const, email: target.email, role: target.role, blocked: Boolean(target.blockedAt) } } : null;
   }
   if (type === "REVIEW") {
     const target = await database.collection<{ _id: ObjectId; comment: string }>("reviews").findOne({ _id: objectId });

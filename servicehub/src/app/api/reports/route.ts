@@ -14,16 +14,16 @@ export async function POST(request: Request) {
   const reports = await reportsCollection();
   if (parsed.data.clientRequestId) {
     const existing = await reports.findOne({ reporterId: new ObjectId(user.id), clientRequestId: parsed.data.clientRequestId });
-    if (existing) return NextResponse.json({ report: toSafeReport(existing, target.label, true), duplicate: true });
+    if (existing) return NextResponse.json({ report: { ...toSafeReport(existing, target.label, true), ...(target.details ? { targetDetails: target.details } : {}) }, duplicate: true });
   }
   const now = new Date();
   const report = { _id: new ObjectId(), reporterId: new ObjectId(user.id), targetType: parsed.data.targetType, targetId: new ObjectId(parsed.data.targetId), reason: parsed.data.reason, ...(parsed.data.note ? { note: parsed.data.note } : {}), ...(parsed.data.clientRequestId ? { clientRequestId: parsed.data.clientRequestId } : {}), status: "PENDING" as const, createdAt: now, updatedAt: now };
   try { await reports.insertOne(report); } catch (error) {
     if (error instanceof Error && error.message.toLowerCase().includes("duplicate") && parsed.data.clientRequestId) {
       const duplicate = await reports.findOne({ reporterId: report.reporterId, clientRequestId: parsed.data.clientRequestId });
-      if (duplicate) return NextResponse.json({ report: toSafeReport(duplicate, target.label, true), duplicate: true });
+      if (duplicate) return NextResponse.json({ report: { ...toSafeReport(duplicate, target.label, true), ...(target.details ? { targetDetails: target.details } : {}) }, duplicate: true });
     }
     throw error;
   }
-  return NextResponse.json({ report: toSafeReport(report, target.label, true) }, { status: 201 });
+  return NextResponse.json({ report: { ...toSafeReport(report, target.label, true), ...(target.details ? { targetDetails: target.details } : {}) } }, { status: 201 });
 }
