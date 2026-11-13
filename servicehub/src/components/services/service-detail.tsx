@@ -42,6 +42,7 @@ export function ServiceDetail({ initialService }: { initialService: SafeService 
         <Link className="text-sm font-semibold text-blue-300 hover:text-white" href="/services">← Back to services</Link>
         {offline ? <p aria-live="polite" className="mt-4 rounded-md border border-tertiary/40 bg-tertiary/10 px-3 py-2 text-sm text-amber-100">Offline copy — may be outdated</p> : null}
         <Card className="mt-6 p-5 sm:p-8">
+          {service.imageUrl ? <img alt="" className="mb-6 h-56 w-full rounded-lg object-cover sm:h-72" src={service.imageUrl} /> : null}
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-300">{service.category}</p><h1 className="mt-2 font-display text-3xl font-bold">{service.title}</h1></div>
             <Badge tone="success">Published</Badge>

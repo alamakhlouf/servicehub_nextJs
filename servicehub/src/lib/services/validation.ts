@@ -8,6 +8,7 @@ export const serviceSchema = z.object({
   price: z.coerce.number().finite("Enter a valid price.").min(0, "Price cannot be negative."),
   priceUnit: z.enum(servicePriceUnits, { message: "Choose a price unit." }),
   city: z.string().trim().min(2, "Enter a city or area.").max(100, "Keep the area under 100 characters."),
+  imageUrl: z.union([z.string().url("Enter a valid image URL."), z.literal("")]).optional(),
   status: z.enum(serviceStatuses).optional(),
 });
 

@@ -13,6 +13,7 @@ export type SupplierListingDocument = {
   unitLabel: string;
   stock: number;
   available: boolean;
+  imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -37,6 +38,7 @@ export function toSafeListing(listing: SupplierListingDocument, supplier?: SafeU
     unitLabel: listing.unitLabel,
     stock: listing.stock,
     available: listing.available,
+    ...(listing.imageUrl ? { imageUrl: listing.imageUrl } : {}),
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt.toISOString(),
     ...(supplier ? { supplier: { id: supplier.id, name: supplier.name, ...(supplier.city ? { city: supplier.city } : {}), ...(supplier.bio ? { bio: supplier.bio } : {}) } } : {}),

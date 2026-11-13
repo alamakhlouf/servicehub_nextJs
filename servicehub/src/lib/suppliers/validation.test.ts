@@ -24,4 +24,18 @@ describe("supplier validation", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts a public image URL and rejects malformed URLs", () => {
+    const listing = {
+      name: "Timber",
+      category: "Materials",
+      description: "Construction timber",
+      unitPrice: 12,
+      unitLabel: "piece",
+      stock: 5,
+      available: true,
+    };
+    expect(supplierListingSchema.safeParse({ ...listing, imageUrl: "https://example.com/timber.jpg" }).success).toBe(true);
+    expect(supplierListingSchema.safeParse({ ...listing, imageUrl: "not-a-url" }).success).toBe(false);
+  });
 });

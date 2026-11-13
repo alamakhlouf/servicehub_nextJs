@@ -9,6 +9,7 @@ export const supplierListingSchema = z.object({
   unitLabel: z.string().trim().min(1, "Enter a unit label.").max(30, "Keep the unit label short."),
   stock: z.coerce.number().int("Stock must be a whole number.").min(0, "Stock cannot be negative."),
   available: z.boolean(),
+  imageUrl: z.union([z.string().url("Enter a valid image URL."), z.literal("")]).optional(),
 });
 
 export const supplierListingUpdateSchema = supplierListingSchema.partial();

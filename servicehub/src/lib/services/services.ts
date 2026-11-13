@@ -12,6 +12,7 @@ export type ServiceDocument = {
   price: number;
   priceUnit: "FIXED" | "PER_HOUR" | "FROM";
   city: string;
+  imageUrl?: string;
   status: ServiceStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -36,6 +37,7 @@ export function toSafeService(service: ServiceDocument, provider?: SafeUser): Sa
     price: service.price,
     priceUnit: service.priceUnit,
     city: service.city,
+    ...(service.imageUrl ? { imageUrl: service.imageUrl } : {}),
     status: service.status,
     createdAt: service.createdAt.toISOString(),
     updatedAt: service.updatedAt.toISOString(),

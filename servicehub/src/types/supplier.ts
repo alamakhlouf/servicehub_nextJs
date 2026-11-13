@@ -11,6 +11,7 @@ export type SafeSupplierListing = {
   unitLabel: string;
   stock: number;
   available: boolean;
+  imageUrl?: string;
   createdAt: string;
   updatedAt: string;
   supplier?: { id: string; name: string; city?: string; bio?: string };
