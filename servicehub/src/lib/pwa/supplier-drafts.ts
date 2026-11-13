@@ -7,6 +7,7 @@ export type SupplierListingDraft = {
   unitLabel: string;
   stock: string;
   available: boolean;
+  imageUrl: string;
   updatedAt: string;
 };
 

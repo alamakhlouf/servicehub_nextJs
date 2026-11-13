@@ -13,6 +13,7 @@ export type SafeService = {
   price: number;
   priceUnit: ServicePriceUnit;
   city: string;
+  imageUrl?: string;
   status: ServiceStatus;
   createdAt: string;
   updatedAt: string;

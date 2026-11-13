@@ -17,6 +17,7 @@ const emptyValues: ListingValues = {
   unitLabel: "piece",
   stock: "0",
   available: true,
+  imageUrl: "",
 };
 
 export function ListingForm({ listing }: { listing?: SafeSupplierListing }) {
@@ -30,6 +31,7 @@ export function ListingForm({ listing }: { listing?: SafeSupplierListing }) {
     unitLabel: listing.unitLabel,
     stock: listing.stock.toString(),
     available: listing.available,
+    imageUrl: listing.imageUrl ?? "",
   } : emptyValues);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,6 +64,7 @@ export function ListingForm({ listing }: { listing?: SafeSupplierListing }) {
           unitLabel: draft.unitLabel,
           stock: draft.stock,
           available: draft.available,
+          imageUrl: draft.imageUrl ?? "",
         });
         setRestored(true);
       }
@@ -142,6 +145,8 @@ export function ListingForm({ listing }: { listing?: SafeSupplierListing }) {
           <Input error={errors.unitLabel} label="Unit label" hint="piece, kg, pack, etc." name="unitLabel" onChange={(event) => update("unitLabel", event.target.value)} value={values.unitLabel} />
         </div>
         <Textarea error={errors.description} label="Description" name="description" onChange={(event) => update("description", event.target.value)} value={values.description} />
+        <Input error={errors.imageUrl} hint="Optional. Use a publicly accessible image URL." label="Image URL" name="imageUrl" onChange={(event) => update("imageUrl", event.target.value)} placeholder="https://example.com/product.jpg" type="url" value={values.imageUrl} />
+        {values.imageUrl ? <img alt="Product preview" className="h-40 w-full rounded-lg border border-border object-cover" src={values.imageUrl} /> : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <Input error={errors.unitPrice} label="Unit price" min="0" name="unitPrice" onChange={(event) => update("unitPrice", event.target.value)} step="0.01" type="number" value={values.unitPrice} />
           <Input error={errors.stock} label="Available stock" min="0" name="stock" onChange={(event) => update("stock", event.target.value)} step="1" type="number" value={values.stock} />

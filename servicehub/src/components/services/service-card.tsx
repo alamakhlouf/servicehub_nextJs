@@ -5,7 +5,9 @@ import type { SafeService } from "@/types/service";
 
 export function ServiceCard({ service, manage = false, className }: { service: SafeService; manage?: boolean; className?: string }) {
   return (
-    <Card className={cn("flex min-w-0 flex-col p-5", className)}>
+    <Card className={cn("flex min-w-0 flex-col overflow-hidden p-0", className)}>
+      {service.imageUrl ? <img alt="" className="h-44 w-full object-cover" src={service.imageUrl} /> : <div aria-hidden="true" className="h-44 w-full bg-gradient-to-br from-blue-950 via-surface to-slate-900" />}
+      <div className="flex flex-1 flex-col p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-300">{service.category}</p>
@@ -22,6 +24,7 @@ export function ServiceCard({ service, manage = false, className }: { service: S
       <Link className="mt-5 inline-flex min-h-10 items-center text-sm font-semibold text-blue-300 hover:text-white" href={manage ? `/dashboard/my-services/${service.id}/edit` : `/services/${service.id}`}>
         {manage ? "Manage service" : "View service"} <span aria-hidden="true" className="ml-1">→</span>
       </Link>
+      </div>
     </Card>
   );
 }
