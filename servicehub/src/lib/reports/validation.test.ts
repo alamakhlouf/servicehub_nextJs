@@ -11,7 +11,7 @@ describe("report validation", () => {
     expect(reportStatusSchema.safeParse({ status: "RESOLVED", adminNote: "Reviewed." }).success).toBe(true);
   });
 
-  it("rejects user targets", () => {
-    expect(reportCreateSchema.safeParse({ targetType: "USER", targetId: "507f1f77bcf86cd799439011", reason: "OTHER" }).success).toBe(false);
+  it("accepts user targets for moderation", () => {
+    expect(reportCreateSchema.safeParse({ targetType: "USER", targetId: "507f1f77bcf86cd799439011", reason: "OTHER" }).success).toBe(true);
   });
 });

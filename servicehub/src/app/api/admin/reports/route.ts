@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const reports = await (await reportsCollection()).find(filter).sort({ createdAt: 1 }).limit(100).toArray();
   const result = await Promise.all(reports.map(async (report) => {
     const target = await findReportTarget(report.targetType, report.targetId.toString());
-    return toSafeReport(report, target?.label, true);
+    return { ...toSafeReport(report, target?.label, true), ...(target?.details ? { targetDetails: target.details } : {}) };
   }));
   return NextResponse.json({ reports: result });
 }

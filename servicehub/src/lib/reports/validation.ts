@@ -10,6 +10,7 @@ export const reportCreateSchema = z.object({
 });
 
 export const reportStatusSchema = z.object({
-  status: z.enum(reportStatuses).refine((value) => value === "UNDER_REVIEW" || value === "RESOLVED" || value === "DISMISSED", "Choose a moderation status."),
+  status: z.enum(reportStatuses).refine((value) => value === "UNDER_REVIEW" || value === "RESOLVED" || value === "DISMISSED", "Choose a moderation status.").optional(),
+  action: z.enum(["BLOCK_USER", "DELETE_TARGET"]).optional(),
   adminNote: z.string().trim().max(500, "Keep the moderation note under 500 characters.").optional(),
-});
+}).refine((value) => Boolean(value.status) !== Boolean(value.action), "Choose one moderation action.");

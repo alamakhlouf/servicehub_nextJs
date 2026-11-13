@@ -1,4 +1,4 @@
-export const reportTargetTypes = ["SERVICE", "SUPPLIER_LISTING", "REVIEW", "WORKSHOP"] as const;
+export const reportTargetTypes = ["SERVICE", "SUPPLIER_LISTING", "USER", "REVIEW", "WORKSHOP"] as const;
 export const reportReasons = ["SPAM", "ABUSIVE", "MISLEADING", "OTHER"] as const;
 export const reportStatuses = ["PENDING", "UNDER_REVIEW", "RESOLVED", "DISMISSED"] as const;
 export type ReportTargetType = (typeof reportTargetTypes)[number];
@@ -11,6 +11,21 @@ export type SafeReport = {
   targetType: ReportTargetType;
   targetId: string;
   targetLabel?: string;
+  targetDetails?: {
+    kind: "SERVICE" | "SUPPLIER_LISTING" | "USER";
+    description?: string;
+    category?: string;
+    price?: number;
+    priceUnit?: string;
+    city?: string;
+    stock?: number;
+    unitPrice?: number;
+    unitLabel?: string;
+    available?: boolean;
+    email?: string;
+    role?: string;
+    blocked?: boolean;
+  };
   reason: ReportReason;
   note?: string;
   status: ReportStatus;
